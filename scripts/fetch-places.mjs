@@ -7,6 +7,7 @@
 // Output: data/places-osm.json  { source, timestamp, places: [{ osm, name, kind, lat, lon, street }] }
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { KEYS, BUILDINGS, SKIP } from '../tools/place-kinds.mjs';
 
 const MIRRORS = [
   'https://overpass-api.de/api/interpreter',
@@ -14,9 +15,6 @@ const MIRRORS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.private.coffee/api/interpreter',
 ];
-const KEYS = ['amenity', 'shop', 'tourism', 'leisure', 'historic', 'office', 'emergency', 'craft', 'healthcare', 'building'];
-// Named buildings count only as these (some places, like a school, are mapped as just a building).
-const BUILDINGS = 'school|kindergarten|college|church|chapel|temple|mosque|synagogue|fire_station|hospital|civic|public|government|library|museum|retail|supermarket|hotel|stadium';
 
 const roads = JSON.parse(readFileSync('data/roads.json', 'utf8'));
 const rings = roads.boundary;   // [[lat, lon], …] each
@@ -32,11 +30,6 @@ function inRing(ring, lat, lon) {
   return hit;
 }
 
-// Too small or too many to be worth a marker.
-const SKIP = new Set(['amenity=toilets', 'amenity=parking', 'amenity=parking_entrance', 'amenity=parking_space', 'amenity=recycling',
-  'amenity=bench', 'amenity=bicycle_rental', 'amenity=bicycle_parking', 'amenity=waste_basket', 'amenity=waste_disposal',
-  'amenity=drinking_water', 'amenity=charging_station', 'amenity=vending_machine', 'amenity=atm', 'amenity=telephone',
-  'amenity=post_box', 'amenity=fountain', 'amenity=bbq', 'amenity=hunting_stand', 'emergency=fire_hydrant', 'emergency=phone']);
 const query = `[out:json][timeout:120];(${KEYS.map((k) => `nwr["name"]["${k}"${k === 'building' ? `~"^(${BUILDINGS})$"` : ''}](${bbox});`).join('')});out center tags;`;
 const from = process.argv.indexOf('--from');
 let data = from > 0 ? JSON.parse(readFileSync(process.argv[from + 1], 'utf8')) : null;

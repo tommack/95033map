@@ -15,18 +15,17 @@
 // it's built in the browser from the editors' files instead, and reloads when they save.
 
 import { buildAll, shortName } from './build-map.mjs';
+import {
+  esc, dist, lerp, clamp, fmt, overlaps, segProject, anchorsAt, anchorsProject,
+  chevrons as chevronSize, chevronSvg, tipText, areaSvg, placeSpot, placeBadge, bunchSideRoads, bunchBranch,
+  TIER_W, MINOR, BUNCH_PX, PLACE_R,
+} from './shared.mjs';
 
 const LIVE = new URLSearchParams(location.search).has('live');
-const MINOR = '#a3a29b';
 const MI = 1609.34;
 
 const $ = (id) => document.getElementById(id);
 const svg = $('map');
-const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
-const lerp = (a, b, m) => [a[0] + (b[0] - a[0]) * m, a[1] + (b[1] - a[1]) * m];
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-const fmt = (n) => n.toFixed(1);
 
 let M = null;              // the map, prepared (see prepare)
 let view = { x: 0, y: 0, w: 1000, h: 1000 };
@@ -139,29 +138,9 @@ function standIns(nodes, edges) {
 }
 
 // ---------- geometry ----------
-function segProject(a, b, p) {
-  const dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy;
-  const s = L2 ? clamp(((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2, 0, 1) : 0;
-  return { s, d: Math.hypot(a[0] + s * dx - p[0], a[1] + s * dy - p[1]) };
-}
 // Schematic point at fraction t of the real road (linear between anchors), and back.
-function schemAt(e, t) {
-  const an = e.an;
-  for (let i = 1; i < an.length; i++) {
-    if (t <= an[i].t || i === an.length - 1) {
-      const s = (t - an[i - 1].t) / ((an[i].t - an[i - 1].t) || 1);
-      return lerp([an[i - 1].x, an[i - 1].y], [an[i].x, an[i].y], clamp(s, 0, 1));
-    }
-  }
-}
-function schemProject(e, p) {
-  let best = { t: 0, d: Infinity };
-  for (let i = 1; i < e.an.length; i++) {
-    const A = e.an[i - 1], B = e.an[i], r = segProject([A.x, A.y], [B.x, B.y], p);
-    if (r.d < best.d) best = { t: A.t + r.s * (B.t - A.t), d: r.d };
-  }
-  return best;
-}
+const schemAt = (e, t) => anchorsAt(e.an, t);
+const schemProject = (e, p) => anchorsProject(e.an, p);
 // Real geometry is [x, y, t] points.
 function realAt(pts, t) {
   for (let i = 1; i < pts.length; i++) {
@@ -301,7 +280,6 @@ function reveal(p, zoomTo) {
 // depend on the zoom and are redrawn when it changes.
 // Each tier of road (1 highway, 2 main road, 3 secondary road, 4 connector, 5 back road, 6 local road) has its
 // own width; the first three are colored.
-const TIER_W = [7, 5.5, 4.2, 3, 2.6, 2.6];
 // Back roads (through, but only just: narrow and winding, Morrell Rd) are gray dashes; local roads are
 // dotted like stubs (dotted: it goes nowhere).
 const BACK_ROAD = 5;
@@ -333,13 +311,10 @@ const shown = (x) => (x.virtual ? x.stands.every((s) => !shownBase(s)) && x.via.
 // closer than BUNCH_PX on screen are drawn, zoomed out, as one branch each side of the road with all
 // their names at its end. The other junctions lose their circles. Tapping the
 // branch zooms in until they come apart.
-const BUNCH_PX = 24;
 let bunches = [], bunchHide = new Set(), bunchPlain = new Set(), bunchSig = '';
 const plainNow = (n) => n.plain || bunchPlain.has(n);
 const realEdges = (n) => n.edges.filter((x) => !x.virtual);
 const otherEnd = (e, n) => (e.A === n ? e.B : e.A);
-const pathLen = (pts) => pts.reduce((a, q, i) => a + (i ? dist(pts[i - 1], q) : 0), 0);
-const unit = (a, b) => { const L = dist(a, b) || 1; return [(b[0] - a[0]) / L, (b[1] - a[1]) / L]; };
 // A line's points starting from node n.
 const ptsFrom = (e, n) => (e.A === n ? anchorPts(e) : anchorPts(e).reverse());
 function sideJunctions() {
@@ -361,75 +336,23 @@ function sideJunctions() {
   return (M.sideJ = J);
 }
 function updateBunches(k) {
-  const out = [], hide = new Set(), plain = new Set();
+  const out = [], hide = new Set();
   const J = morph === 1 ? sideJunctions() : new Map(), live = new Map();
   for (const [j, v] of J) {
     const leaves = v.leaves.filter((l) => shownLod(l.e));
     if (leaves.length && shownLod(j) && v.carriers.every(shownLod)) live.set(j, { ...v, leaves });
   }
-  // Neighbors along the road, through junctions with nothing else drawn off them.
-  const links = new Map([...live.keys()].map((j) => [j, []]));
-  for (const [j, v] of live) {
-    for (let c of v.carriers) {
-      let n = j, pts = [];
-      for (let guard = 0; guard < 500; guard++) {
-        const q = ptsFrom(c, n);
-        pts = pts.length ? pts.concat(q.slice(1)) : q;
-        n = otherEnd(c, n);
-        if (live.has(n) || n.kind) break;
-        const next = n.edges.filter((x) => x !== c && shownLod(x) && !x.virtual);
-        if (next.length !== 1) break;
-        c = next[0];
-      }
-      if (live.has(n) && n !== j && pathLen(pts) < BUNCH_PX * k) links.get(j).push({ n, pts });
-    }
-  }
-  const seen = new Set();
-  for (const j of live.keys()) {
-    if (seen.has(j) || !links.get(j).length) continue;
-    // Walk to one end of the chain, then along it.
-    let start = j, prev = null;
-    for (const guard = new Set([j]); ;) {
-      const l = links.get(start).find((x) => x.n !== prev && !guard.has(x.n));
-      if (!l) break;
-      prev = start; start = l.n; guard.add(start);
-    }
-    const chain = [start], at = [0];
-    let len = 0;
-    for (let cur = start, back = null; ;) {
-      seen.add(cur);
-      const l = links.get(cur).find((x) => x.n !== back && !seen.has(x.n));
-      if (!l) break;
-      len += pathLen(l.pts); at.push(len);
-      back = cur; cur = l.n; chain.push(cur);
-    }
-    if (chain.length < 2) continue;
-    // Names read along the road, left to right (top to bottom for one running up and down).
-    const a = chain[0], z = chain[chain.length - 1];
-    if (Math.abs(z.x - a.x) >= Math.abs(z.y - a.y) ? z.x < a.x : z.y < a.y) { chain.reverse(); at.reverse(); at.forEach((d, i) => (at[i] = len - d)); }
-    // Each side of the road gets its own branch, so side roads stay on the side they leave from. It
-    // comes off the junction nearest the middle of theirs; a side with just one road keeps it as it is.
-    const nrm = chain.map((_, i) => {
-      const a = chain[Math.max(0, i - 1)], b = chain[Math.min(chain.length - 1, i + 1)], [tx, ty] = unit([a.x, a.y], [b.x, b.y]);
-      return [-ty, tx];
-    });
-    const sideOf = (l, i) => { const q = ptsFrom(l.e, chain[i]), d = unit(q[0], q[1]); return d[0] * nrm[i][0] + d[1] * nrm[i][1] >= 0 ? 1 : -1; };
-    const gap = Math.min(...at.slice(1).map((d, i) => Math.abs(d - at[i]))), anchors = new Set(), done = new Set();
-    for (const sgn of [-1, 1]) {
-      const own = chain.map((j, i) => live.get(j).leaves.filter((l) => sideOf(l, i) === sgn).map((l) => ({ ...l, i })));
-      const leaves = own.flat();
-      if (leaves.length < 2) continue;
-      const idx = own.map((x, i) => (x.length ? i : -1)).filter((i) => i >= 0), mid = (at[idx[0]] + at[idx[idx.length - 1]]) / 2;
-      const mi = idx.reduce((b, i) => (Math.abs(at[i] - mid) < Math.abs(at[b] - mid) ? i : b)), m = chain[mi];
-      const names = [...new Set(leaves.flatMap((l) => (l.t.kind === 'branch' ? (l.t.label || '').split(/\s*,\s*/).filter(Boolean).map(shortName)
-        : isPlaceholder(l.e.road) ? [] : [roadText(l.e.road)])))];
-      const pts = leaves.flatMap((l) => anchorPts(l.e)).concat(chain.map((j) => [j.x, j.y]));
-      const bounds = [Math.min(...pts.map((q) => q[0])), Math.min(...pts.map((q) => q[1])), Math.max(...pts.map((q) => q[0])), Math.max(...pts.map((q) => q[1]))];
-      out.push({ j: m, dir: [nrm[mi][0] * sgn, nrm[mi][1] * sgn], names, leaves, chain, gap, bounds });
-      anchors.add(m);
-      for (const l of leaves) { hide.add(l.e); hide.add(l.t); done.add(l.e); }
-    }
-    for (const j of chain) if (!anchors.has(j) && live.get(j).leaves.every((l) => done.has(l.e))) plain.add(j);
+  const { bunches: found, plain } = bunchSideRoads(live, {
+    pos: (n) => [n.x, n.y], ptsFrom, other: otherEnd, stop: (n) => !!n.kind,
+    next: (n, e) => n.edges.filter((x) => x !== e && shownLod(x) && !x.virtual),
+  }, BUNCH_PX * k);
+  for (const b of found) {
+    const names = [...new Set(b.leaves.flatMap((l) => (l.t.kind === 'branch' ? (l.t.label || '').split(/\s*,\s*/).filter(Boolean).map(shortName)
+      : isPlaceholder(l.e.road) ? [] : [roadText(l.e.road)])))];
+    const pts = b.leaves.flatMap((l) => anchorPts(l.e)).concat(b.chain.map((j) => [j.x, j.y]));
+    const bounds = [Math.min(...pts.map((q) => q[0])), Math.min(...pts.map((q) => q[1])), Math.max(...pts.map((q) => q[0])), Math.max(...pts.map((q) => q[1]))];
+    out.push({ ...b, names, bounds });
+    for (const l of b.leaves) { hide.add(l.e); hide.add(l.t); }
   }
   const sig = out.map((b) => `${b.j.x},${b.j.y},${b.dir}:${b.leaves.length}`).join('|');
   bunches = out; bunchHide = hide; bunchPlain = plain;
@@ -437,24 +360,16 @@ function updateBunches(k) {
   bunchSig = sig;
   return true;
 }
-// A bunch's branch: from its junction across the road, BUNCH_LEN pixels long, ending in a bar.
-const BUNCH_LEN = 20;
-const bunchTip = (b, k) => [b.j.x + b.dir[0] * BUNCH_LEN * k, b.j.y + b.dir[1] * BUNCH_LEN * k];
-function bunchSvg(b, k) {
-  const [x, y] = bunchTip(b, k), [ux, uy] = b.dir, w = TIER_W[3] * k, H = Math.max(w * 1.5, 6 * k);
-  return `<path d="M${fmt(b.j.x)} ${fmt(b.j.y)}L${fmt(x)} ${fmt(y)}" stroke="${MINOR}" stroke-width="${w}"/>` +
-    `<path d="M${fmt(x - uy * H)} ${fmt(y + ux * H)}L${fmt(x + uy * H)} ${fmt(y - ux * H)}" stroke="${MINOR}" stroke-width="${w}" stroke-linecap="round"/>`;
-}
+// A bunch's branch: from its junction across the road, ending in a bar.
+const bunchTip = (b, k) => bunchBranch([b.j.x, b.j.y], b.dir, k).tip;
+const bunchSvg = (b, k) => bunchBranch([b.j.x, b.j.y], b.dir, k).svg;
 
 // Places (shops, schools…): a badge with an icon beside the road, on the side the place is, joined to
 // it by a tick, with the name past it. Left off with their road.
-const PLACE_R = 9;
 const PLACE_NAME_K = 8;   // meters per pixel: zoomed in past this, places are labeled with their names
 function placeGeom(q, k) {
-  const e = q.e, a = schemAt(e, Math.max(0, q.t - 0.01)), b = schemAt(e, Math.min(1, q.t + 0.01)), L = dist(a, b) || 1;
-  const at = schemAt(e, q.t), n = [-(b[1] - a[1]) / L * q.side, (b[0] - a[0]) / L * q.side];
-  const r = PLACE_R * k, off = (lineWidth(e) / 2 + 6 + PLACE_R) * k;
-  return { at, n, r, c: [at[0] + n[0] * off, at[1] + n[1] * off] };
+  const spot = placeSpot((t) => schemAt(q.e, t), q.t, q.side);
+  return { ...spot, ...placeBadge(spot, lineWidth(q.e), k) };
 }
 const placeShown = (q) => shown(q.e);
 function placeSvg(q, k) {
@@ -526,19 +441,7 @@ function tipDir(n) {
 }
 
 // A road that keeps going after the map stops ends in two chevrons.
-function chevrons(e, k) {
-  const w = lineWidth(e) * k, h = Math.max(w * 1.2, 6 * k), a = h * 0.9;
-  const gap = Math.max(w * 0.6, 3.5 * k) + a, sp = Math.max(w * 1.1, 6 * k);
-  return { h, a, gap, sp, sw: Math.max(w * 0.6, 2.2 * k), extent: gap + sp };
-}
-function chevronSvg(x, y, ux, uy, c, col) {
-  let d = '';
-  for (let i = 0; i < 2; i++) {
-    const cx = x + ux * (c.gap + i * c.sp), cy = y + uy * (c.gap + i * c.sp), bx = cx - ux * c.a, by = cy - uy * c.a;
-    d += `<path d="M${fmt(bx - uy * c.h)} ${fmt(by + ux * c.h)}L${fmt(cx)} ${fmt(cy)}L${fmt(bx + uy * c.h)} ${fmt(by - ux * c.h)}" stroke-opacity="${i ? 0.5 : 1}"/>`;
-  }
-  return `<g fill="none" stroke="${col}" stroke-width="${fmt(c.sw)}" stroke-linecap="round" stroke-linejoin="round">${d}</g>`;
-}
+const chevrons = (e, k) => chevronSize(lineWidth(e), k);
 
 // A neighborhood: a big circle with a few dots for its streets. Its radius is Size × 70 m on the
 // map (Size is set in the layout editor), so it zooms with the roads, but it's never smaller than a
@@ -557,11 +460,6 @@ function areaInside(n, k) {
   if (lines.some((t) => areaTextW(t) > maxW) || lines.length * AREA_FS * 1.2 > r * 1.3) return null;
   return lines;
 }
-function areaSvg(x, y, r, k, dots = true) {
-  const d = r * 0.42, dot = (a) => `<circle cx="${fmt(x + d * Math.cos(a))}" cy="${fmt(y + d * Math.sin(a))}" r="${1.7 * k * Math.sqrt(r / (11 * k))}" fill="var(--node-stroke)"/>`;
-  return `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${r}" fill="var(--node-fill)" stroke="var(--node-stroke)" stroke-width="${2.5 * k}"/>` +
-    (dots ? [-Math.PI / 2, Math.PI / 6, 5 * Math.PI / 6].map(dot).join('') : '');
-}
 
 function drawNodes(k) {
   let s = bunches.map((b) => bunchSvg(b, k)).join('');
@@ -571,7 +469,7 @@ function drawNodes(k) {
     if (n.kind) {
       const e = n.edges[0], [ux, uy] = tipDir(n), w = lineWidth(e) * k, col = e.style.color;
       if (n.kind === 'area') {
-        s += areaSvg(x, y, areaR(n, k), k, !areaInside(n, k));
+        s += areaSvg(x, y, areaR(n, k), k, { dots: !areaInside(n, k) });
         continue;
       }
       if (n.kind === 'closed') {
@@ -663,7 +561,6 @@ function textWidth(text, px, weight = 400) {
   }
   return widthCache.get(key);
 }
-const overlaps = (b, list) => list.some((o) => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0);
 const roadText = (road) => shortName(M.roads[road]?.label || road);
 const isPlaceholder = (road) => !road || /^\(.*\)$/.test(road);
 // A branch's line whose road is one of the names listed at the branch's end needs no label of its own.
@@ -838,23 +735,9 @@ function drawLabels(k) {
 }
 
 function tipLabel(n, lines, px, weight, k, placed, attrs) {
-  const [dx, dy] = n.dir || tipDir(n), fs = px * k;
-  lines = lines.map((l) => (Array.isArray(l) ? l : [l, '']));
-  const tw = Math.max(...lines.map(([l]) => textWidth(l, px, weight))) * k, lh = fs * 1.2, th = lh * lines.length;
+  const tw = Math.max(...lines.map((l) => textWidth(Array.isArray(l) ? l[0] : l, px, weight))) * k;
   const gap = n.kind === 'through' || n.kind === 'exit' ? chevrons(n.edges[0], k).extent + 5 * k : (n.kind === 'branch' ? 9 : 5) * k;
-  let x = n.x + dx * gap, y = n.y + dy * gap, anchor = 'middle', box;
-  if (Math.abs(dx) > 0.38) {
-    anchor = dx > 0 ? 'start' : 'end';
-    box = { x0: dx > 0 ? x : x - tw, x1: dx > 0 ? x + tw : x, y0: y - th / 2, y1: y + th / 2 };
-  } else {
-    y += ((dy > 0 ? 1 : -1) * th) / 2;
-    box = { x0: x - tw / 2, x1: x + tw / 2, y0: y - th / 2, y1: y + th / 2 };
-  }
-  if (overlaps(box, placed)) return '';
-  placed.push(box);
-  const y0 = y - th / 2 + lh / 2;
-  return `<text text-anchor="${anchor}" font-size="${fs}" ${attrs}>` +
-    lines.map(([l, a], i) => `<tspan x="${fmt(x)}" y="${fmt(y0 + i * lh)}" dy="0.35em"${a ? ' ' + a : ''}>${esc(l)}</tspan>`).join('') + '</text>';
+  return tipText([n.x, n.y], n.dir || tipDir(n), gap, lines, px * k, tw, placed, attrs);
 }
 
 // ---------- selection card ----------

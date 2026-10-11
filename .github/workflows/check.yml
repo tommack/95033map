@@ -1,5 +1,6 @@
-# On every push and pull request: the public map builds without warnings (e.g. a neighborhood map
-# that's out of date) and data/slugs.json, which keeps old links working, is committed up to date.
+# On every push and pull request: lint, then the tests, which include building the public map from the
+# committed data without warnings (e.g. a neighborhood map that's out of date) and checking
+# data/slugs.json, which keeps old links working, is up to date.
 name: Check
 on:
   push:
@@ -12,7 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Build the public map
-        run: node scripts/build-site.mjs --strict
-      - name: Link names are committed
-        run: git diff --exit-code data/slugs.json || (echo "::error::data/slugs.json changed: run npm run build and commit it" && exit 1)
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test

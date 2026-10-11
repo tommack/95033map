@@ -5,6 +5,15 @@
   "scripts": {
     "dev": "node scripts/server.mjs",
     "build": "node scripts/build-site.mjs",
+    "test": "node --test 'test/*.test.mjs'",
+    "lint": "eslint .",
     "deploy": "node scripts/build-site.mjs && npx wrangler deploy"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "globals": "^15.15.0"
   }
 }

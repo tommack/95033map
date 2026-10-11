@@ -21,13 +21,30 @@ extension, which currently spans the ZCTA's full width, Felton to Aptos).
 
 ## Getting started
 
-Needs Node 20 or later; there are no dependencies to install.
+Needs Node 22 or later. Nothing needs installing to run the tools or build the map; `npm install` brings
+in ESLint, for `npm run lint`.
 
 ```sh
 npm run dev      # node scripts/server.mjs, then open http://localhost:8765/tools/
 npm run build    # node scripts/build-site.mjs: the public map's data, into site/data/
+npm test         # unit tests, and a build of the committed data (test/)
+npm run lint     # ESLint
 npm run deploy   # build, then npx wrangler deploy (Cloudflare; see wrangler.jsonc)
 ```
+
+### Code layout
+
+| Where | What |
+|---|---|
+| `tools/index.html` | The tools shell: the tabs |
+| `tools/node-picker/` | Node picker: `index.html`, `picker.js`, `style.css` (and Leaflet in `vendor/`) |
+| `tools/layout-editor/` | Layout editor: `index.html`, `editor.js`, `style.css` |
+| `tools/place-kinds.mjs` | Which OpenStreetMap places are offered, and their icons and labels |
+| `site/` | The public map: `index.html`, `app.js`, `style.css` |
+| `site/build-map.mjs` | Builds the public map's data from the editors' files (in Node and, for the preview, the browser) |
+| `site/shared.mjs` | Drawing and geometry the public map and the layout editor share, so the editor shows what the map will |
+| `scripts/` | Dev server, build, and data prep and download |
+| `test/` | `node --test` tests |
 
 The editing state (`data/graph.json`, `data/layout*.json`) and what the tools derive from it are
 committed, so a fresh clone opens on the current map. `site/data/` is built, not committed.
@@ -349,9 +366,9 @@ Location needs HTTPS, which `workers.dev` and custom domains have.
 
 ## GitHub Actions
 
-- **Check** (every push and pull request): builds the public map with `--strict`, so it fails on any
-  warning (such as a neighborhood map that's out of date), and checks `data/slugs.json` is committed up to
-  date (`npm run build` updates it; it's what keeps old links working).
+- **Check** (every push and pull request): lint and tests. The tests build the public map from the
+  committed data, so it fails on any warning (such as a neighborhood map that's out of date), and check
+  `data/slugs.json` is committed up to date (`npm run build` updates it; it's what keeps old links working).
 - **Deploy** (run by hand from the Actions tab): builds and deploys to Cloudflare. Needs the repository
   secrets `CLOUDFLARE_API_TOKEN` (a token from the "Edit Cloudflare Workers" template) and
   `CLOUDFLARE_ACCOUNT_ID`.
