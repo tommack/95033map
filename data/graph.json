@@ -1,0 +1,2951 @@
+{
+ "rev": 467,
+ "savedAt": "2026-10-11T05:17:32.730Z",
+ "state": {
+  "version": 3,
+  "enabled": [
+   "major",
+   "second",
+   "tert",
+   "minor"
+  ],
+  "corridors": [
+   {
+    "id": "CA-1",
+    "ref": "CA 1",
+    "label": "Hwy 1",
+    "dirLabels": [
+     "NB",
+     "SB"
+    ]
+   },
+   {
+    "id": "CA-17",
+    "ref": "CA 17",
+    "label": "Hwy 17",
+    "dirLabels": [
+     "NB",
+     "SB"
+    ]
+   },
+   {
+    "id": "CA-17-Business",
+    "ref": "CA 17 Business",
+    "label": "CA 17 Business",
+    "dirLabels": [
+     "NB",
+     "SB"
+    ]
+   }
+  ],
+  "active": null,
+  "nodes": [
+   {
+    "id": "91048935",
+    "name": "Summit Road / Soquel San Jose Road",
+    "auto": true,
+    "members": [
+     91048935,
+     91048936,
+     317344192
+    ]
+   },
+   {
+    "id": "91048932",
+    "name": "Porter Street / Soquel San Jose Road",
+    "auto": true,
+    "members": [
+     91048932
+    ]
+   },
+   {
+    "id": "91034494",
+    "name": "Porter Street / Bay Avenue",
+    "auto": true,
+    "members": [
+     91034494,
+     91040442
+    ]
+   },
+   {
+    "id": "91046320",
+    "name": "Soquel San Jose Road / Laurel Glen Road",
+    "auto": true,
+    "members": [
+     91046320
+    ]
+   },
+   {
+    "id": "91048415",
+    "name": "Soquel San Jose Road / Olson Road",
+    "auto": true,
+    "members": [
+     91048415
+    ]
+   },
+   {
+    "id": "1884594259",
+    "name": "Soquel San Jose Road / Amaya Ridge Road",
+    "auto": true,
+    "members": [
+     1884594259
+    ]
+   },
+   {
+    "id": "91043210",
+    "name": "Soquel San Jose Road / Hester Creek Road",
+    "auto": true,
+    "members": [
+     91043210
+    ]
+   },
+   {
+    "id": "91048800",
+    "name": "Soquel San Jose Road / Old Turnpike Road",
+    "auto": true,
+    "members": [
+     91048800
+    ]
+   },
+   {
+    "id": "7625649541",
+    "name": "Soquel San Jose Road / Smith Valley Road",
+    "auto": true,
+    "members": [
+     7625649541
+    ]
+   },
+   {
+    "id": "91048986",
+    "name": "Soquel San Jose Road / Terrace Grove Road",
+    "auto": true,
+    "members": [
+     91048986
+    ]
+   },
+   {
+    "id": "91048993",
+    "name": "Soquel San Jose Road / Stetson Road",
+    "auto": true,
+    "members": [
+     91048993
+    ]
+   },
+   {
+    "id": "1872081500",
+    "name": "Stetson Road / Comstock Mill Road",
+    "auto": true,
+    "members": [
+     1872081500
+    ]
+   },
+   {
+    "id": "1118305878",
+    "name": "Soquel San Jose Road / Redwood Lodge Road",
+    "auto": true,
+    "members": [
+     1118305878
+    ]
+   },
+   {
+    "id": "4010337345",
+    "name": "Laurel Road / Redwood Lodge Road",
+    "auto": true,
+    "members": [
+     4010337345
+    ]
+   },
+   {
+    "id": "264416310",
+    "name": "Laurel Road",
+    "auto": true,
+    "members": [
+     264416310
+    ]
+   },
+   {
+    "id": "65388075",
+    "name": "Summit Road / Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     65388075,
+     10657195372,
+     1948671921,
+     9226550123,
+     65388179,
+     65388182,
+     427523861,
+     65388187,
+     7048887186,
+     7048882492
+    ]
+   },
+   {
+    "id": "2736252630",
+    "name": "Summit Road / Mountain Charlie Road",
+    "auto": true,
+    "members": [
+     2736252630
+    ]
+   },
+   {
+    "id": "7048860837",
+    "name": "Summit Road / Stagecoach Road",
+    "auto": true,
+    "members": [
+     7048860837
+    ]
+   },
+   {
+    "id": "65486803",
+    "name": "Summit Road / Melody Lane",
+    "auto": true,
+    "members": [
+     65486803
+    ]
+   },
+   {
+    "id": "65537223",
+    "name": "Old Santa Cruz Highway / Melody Lane",
+    "auto": true,
+    "members": [
+     65537223
+    ]
+   },
+   {
+    "id": "9533926856",
+    "name": "Summit Road / Old Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     9533926856
+    ]
+   },
+   {
+    "id": "65486738",
+    "name": "Summit Road / Del Monte Way",
+    "auto": true,
+    "members": [
+     65486738
+    ]
+   },
+   {
+    "id": "65481371",
+    "name": "Summit Road / Sunset Drive",
+    "auto": true,
+    "members": [
+     65481371
+    ]
+   },
+   {
+    "id": "91080536",
+    "name": "Evergreen Lane / Sky View Terrace",
+    "auto": true,
+    "members": [
+     91080536
+    ]
+   },
+   {
+    "id": "91080534",
+    "name": "Evergreen Lane / Sunset Drive",
+    "auto": true,
+    "members": [
+     91080534
+    ]
+   },
+   {
+    "id": "91045035",
+    "name": "Del Monte Way / Sunset Drive",
+    "auto": true,
+    "members": [
+     91045035
+    ]
+   },
+   {
+    "id": "413768951",
+    "name": "Summit Road / Morrell Road",
+    "auto": true,
+    "members": [
+     413768951
+    ]
+   },
+   {
+    "id": "65484476",
+    "name": "Summit Road / Morrill Road",
+    "auto": true,
+    "members": [
+     65484476
+    ]
+   },
+   {
+    "id": "4373001109",
+    "name": "Highland Way / Skyland Road",
+    "auto": true,
+    "members": [
+     4373001109
+    ]
+   },
+   {
+    "id": "963773397",
+    "name": "Skyland Road / Miller Hill Road",
+    "auto": true,
+    "members": [
+     963773397
+    ]
+   },
+   {
+    "id": "91048954",
+    "name": "Soquel San Jose Road / Miller Hill Road",
+    "auto": true,
+    "members": [
+     91048954
+    ]
+   },
+   {
+    "id": "91048956",
+    "name": "Soquel San Jose Road / Morrell Road",
+    "auto": true,
+    "members": [
+     91048956
+    ]
+   },
+   {
+    "id": "8064986257",
+    "name": "Soquel San Jose Road / Miller Cut Off Road",
+    "auto": true,
+    "members": [
+     8064986257,
+     91048942,
+     2881876679
+    ]
+   },
+   {
+    "id": "91087812",
+    "name": "Miller Cut Off Road / Miller Hill Road",
+    "auto": true,
+    "members": [
+     91087812
+    ]
+   },
+   {
+    "id": "91087808",
+    "name": "Old Orchard Road / Miller Cut Off Road",
+    "auto": true,
+    "members": [
+     91087808
+    ]
+   },
+   {
+    "id": "91028690",
+    "name": "Old Orchard Road / Skyland Road",
+    "auto": true,
+    "members": [
+     91028690
+    ]
+   },
+   {
+    "id": "91082214",
+    "name": "Skyland Road / Adams Road",
+    "auto": true,
+    "members": [
+     91082214
+    ]
+   },
+   {
+    "id": "91082858",
+    "name": "Adams Ridge / Adams Road",
+    "auto": true,
+    "members": [
+     91082858
+    ]
+   },
+   {
+    "id": "91042710",
+    "name": "Shuey Ranch Road / Adams Road",
+    "auto": true,
+    "members": [
+     91042710
+    ]
+   },
+   {
+    "id": "91093868",
+    "name": "Highland Way / Radonich Road",
+    "auto": true,
+    "members": [
+     91093868
+    ]
+   },
+   {
+    "id": "91088843",
+    "name": "Mount Bache Road / Highland Way",
+    "auto": true,
+    "members": [
+     91088843
+    ]
+   },
+   {
+    "id": "91076996",
+    "name": "Highland Way / Spanish Ranch Road",
+    "auto": true,
+    "members": [
+     91076996
+    ]
+   },
+   {
+    "id": "65594350",
+    "name": "Mount Bache Road / Loma Prieta Way",
+    "auto": true,
+    "members": [
+     65594350
+    ]
+   },
+   {
+    "id": "1236123151",
+    "name": "Highland Way / Canyon Vista",
+    "auto": true,
+    "members": [
+     1236123151
+    ]
+   },
+   {
+    "id": "91046381",
+    "name": "Laurel Glen Road / Mountain View Road",
+    "auto": true,
+    "members": [
+     91046381
+    ]
+   },
+   {
+    "id": "91066874",
+    "name": "Mountain View Road / Vine Hill Road",
+    "auto": true,
+    "members": [
+     91066874
+    ]
+   },
+   {
+    "id": "91028622",
+    "name": "Jarvis Road / Vine Hill Road",
+    "auto": true,
+    "members": [
+     91028622,
+     2299099586,
+     12473055764
+    ]
+   },
+   {
+    "id": "91102868",
+    "name": "Jarvis Road / Hall Ranch Road",
+    "auto": true,
+    "members": [
+     91102868
+    ]
+   },
+   {
+    "id": "91080693",
+    "name": "Jarvis Road / Rider Ridge Road",
+    "auto": true,
+    "members": [
+     91080693
+    ]
+   },
+   {
+    "id": "91038307",
+    "name": "Jarvis Road / Quail Ridge Road",
+    "auto": true,
+    "members": [
+     91038307
+    ]
+   },
+   {
+    "id": "91087035",
+    "name": "Jarvis Road / Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     91087035
+    ]
+   },
+   {
+    "id": "91087024",
+    "name": "Vine Hill Road / Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     91087024,
+     10616965978,
+     10616965960
+    ]
+   },
+   {
+    "id": "91045289",
+    "name": "Sugarloaf Road / Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     91045289,
+     1099084516
+    ]
+   },
+   {
+    "id": "91045285",
+    "name": "Tucker Road / Sugarloaf Road",
+    "auto": true,
+    "members": [
+     91045285
+    ]
+   },
+   {
+    "id": "306090061",
+    "name": "Hwy 1 / Hwy 17 / Ocean St",
+    "auto": false,
+    "members": [
+     306090061,
+     91032132,
+     15972538,
+     91043834,
+     526586211,
+     692323844,
+     692323843,
+     2702095767,
+     4524156579,
+     4524156575,
+     305553582,
+     91030824,
+     526586049,
+     91053376,
+     91053374,
+     526590547,
+     2173839234,
+     8252396873,
+     526590554,
+     91063125,
+     91100282
+    ]
+   },
+   {
+    "id": "91075632",
+    "name": "Soquel Drive / North Rodeo Gulch Road",
+    "auto": true,
+    "members": [
+     91075632
+    ]
+   },
+   {
+    "id": "91082875",
+    "name": "Porter Street / Soquel Drive",
+    "auto": true,
+    "members": [
+     91082875,
+     1885562305,
+     1885562405
+    ]
+   },
+   {
+    "id": "91045943",
+    "name": "Branciforte Drive / Goss Avenue",
+    "auto": true,
+    "members": [
+     91045943
+    ]
+   },
+   {
+    "id": "91048958",
+    "name": "Soquel San Jose Road / Summit Woods Drive",
+    "auto": true,
+    "members": [
+     91048958
+    ]
+   },
+   {
+    "id": "91066810",
+    "name": "Granite Creek Road / Branciforte Drive",
+    "auto": true,
+    "members": [
+     91066810
+    ]
+   },
+   {
+    "id": "91047867",
+    "name": "Granite Creek Road / Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     91047867,
+     264412249,
+     91034829,
+     91034690,
+     261622482,
+     366729725,
+     261622476,
+     91089405,
+     91034685
+    ]
+   },
+   {
+    "id": "91067412",
+    "name": "Thurston Road / Stetson Road",
+    "auto": true,
+    "members": [
+     91067412
+    ]
+   },
+   {
+    "id": "91067387",
+    "name": "Skyland Road / Stetson Road",
+    "auto": true,
+    "members": [
+     91067387
+    ]
+   },
+   {
+    "id": "91087770",
+    "name": "Ocean View Road / Miller Hill Road",
+    "auto": true,
+    "members": [
+     91087770
+    ]
+   },
+   {
+    "id": "6860020714",
+    "name": "Soquel San Jose Road / Spring Hollow Road",
+    "auto": true,
+    "members": [
+     6860020714
+    ]
+   },
+   {
+    "id": "91075238",
+    "name": "Laurel View Road / Smith Valley Road",
+    "auto": true,
+    "members": [
+     91075238
+    ]
+   },
+   {
+    "id": "91048982",
+    "name": "Soquel San Jose Road / Ridge Top Road",
+    "auto": true,
+    "members": [
+     91048982
+    ]
+   },
+   {
+    "id": "1232614775",
+    "name": "Soquel San Jose Road / Timber Lodge Road",
+    "auto": true,
+    "members": [
+     1232614775
+    ]
+   },
+   {
+    "id": "91048978",
+    "name": "Soquel San Jose Road / Timber Lodge Road",
+    "auto": true,
+    "members": [
+     91048978
+    ]
+   },
+   {
+    "id": "91027727",
+    "name": "Deerfield Road / Evergreen Lane",
+    "auto": true,
+    "members": [
+     91027727
+    ]
+   },
+   {
+    "id": "91045642",
+    "name": "Cove Lane Road / Skyview Court",
+    "auto": true,
+    "members": [
+     91045642
+    ]
+   },
+   {
+    "id": "91027739",
+    "name": "Deerfield Road / Cove Lane Road",
+    "auto": true,
+    "members": [
+     91027739
+    ]
+   },
+   {
+    "id": "91093817",
+    "name": "Sky View Terrace / Treeview Trail",
+    "auto": true,
+    "members": [
+     91093817
+    ]
+   },
+   {
+    "id": "91063106",
+    "name": "Belaire Court / Sky View Terrace",
+    "auto": true,
+    "members": [
+     91063106
+    ]
+   },
+   {
+    "id": "91103276",
+    "name": "Old Santa Cruz Highway / Schulties Road",
+    "auto": true,
+    "members": [
+     91103276
+    ]
+   },
+   {
+    "id": "91087135",
+    "name": "Old Santa Cruz Highway / Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     91087135,
+     4915590390,
+     366731020
+    ]
+   },
+   {
+    "id": "65486664",
+    "name": "Summit Road / Hutchinson Road",
+    "auto": true,
+    "members": [
+     65486664
+    ]
+   },
+   {
+    "id": "91050570",
+    "name": "Hutchinson Road / Old Japanese Road West",
+    "auto": true,
+    "members": [
+     91050570
+    ]
+   },
+   {
+    "id": "12434901570",
+    "name": "Hutchinson Road / Oak Flat Road",
+    "auto": true,
+    "members": [
+     12434901570
+    ]
+   },
+   {
+    "id": "91050572",
+    "name": "Hutchinson Road / Debbie Road",
+    "auto": true,
+    "members": [
+     91050572
+    ]
+   },
+   {
+    "id": "813411598",
+    "name": "Rudy Road / Old Mill Pond Road",
+    "auto": true,
+    "members": [
+     813411598
+    ]
+   },
+   {
+    "id": "813411662",
+    "name": "Hutchinson Road / Rudy Road",
+    "auto": true,
+    "members": [
+     813411662
+    ]
+   },
+   {
+    "id": "813411567",
+    "name": "Hutchinson Road / Lon Road",
+    "auto": true,
+    "members": [
+     813411567
+    ]
+   },
+   {
+    "id": "91050617",
+    "name": "Lower Hutchinson Road / Hutchinson Road",
+    "auto": true,
+    "members": [
+     91050617
+    ]
+   },
+   {
+    "id": "91039540",
+    "name": "Lower Hutchinson Road / Fern Ridge",
+    "auto": true,
+    "members": [
+     91039540
+    ]
+   },
+   {
+    "id": "91078264",
+    "name": "East Zayante Road / Fern Ridge",
+    "auto": true,
+    "members": [
+     91078264
+    ]
+   },
+   {
+    "id": "91064809",
+    "name": "East Zayante Road / Lower Ellen Road",
+    "auto": true,
+    "members": [
+     91064809
+    ]
+   },
+   {
+    "id": "91078293",
+    "name": "Upper Zayante Road / East Zayante Road",
+    "auto": true,
+    "members": [
+     91078293
+    ]
+   },
+   {
+    "id": "813244548",
+    "name": "Lower Ellen Road / Middle Ellen Road",
+    "auto": true,
+    "members": [
+     813244548
+    ]
+   },
+   {
+    "id": "91049166",
+    "name": "Treehouse Way / Middle Ellen Road",
+    "auto": true,
+    "members": [
+     91049166
+    ]
+   },
+   {
+    "id": "91062596",
+    "name": "Upper Zayante Road / Middle Ellen Road",
+    "auto": true,
+    "members": [
+     91062596
+    ]
+   },
+   {
+    "id": "8573410767",
+    "name": "Upper Zayante Road / White Rock Road",
+    "auto": true,
+    "members": [
+     8573410767
+    ]
+   },
+   {
+    "id": "91062538",
+    "name": "Upper Zayante Road / Upper Ellen Road",
+    "auto": true,
+    "members": [
+     91062538
+    ]
+   },
+   {
+    "id": "91055641",
+    "name": "Wilderfield Road / White Rock Road",
+    "auto": true,
+    "members": [
+     91055641
+    ]
+   },
+   {
+    "id": "8625870840",
+    "name": "Upper Zayante Road / Outer Zayante Road",
+    "auto": true,
+    "members": [
+     8625870840
+    ]
+   },
+   {
+    "id": "91062579",
+    "name": "Summit Road / Upper Zayante Road",
+    "auto": true,
+    "members": [
+     91062579
+    ]
+   },
+   {
+    "id": "91059573",
+    "name": "Bear Creek Road / Summit Road",
+    "auto": true,
+    "members": [
+     91059573
+    ]
+   },
+   {
+    "id": "65543804",
+    "name": "Bear Creek Road / Chase Road",
+    "auto": true,
+    "members": [
+     65543804
+    ]
+   },
+   {
+    "id": "331115157",
+    "name": "Bear Creek Road / Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     331115157,
+     331115420,
+     5148995332,
+     331115415,
+     331115174,
+     331115425,
+     331115181
+    ]
+   },
+   {
+    "id": "288691269",
+    "name": "Black Road / Montevina Road",
+    "auto": true,
+    "members": [
+     288691269
+    ]
+   },
+   {
+    "id": "437951232",
+    "name": "Black Road / Beardsley Road",
+    "auto": true,
+    "members": [
+     437951232
+    ]
+   },
+   {
+    "id": "52155858",
+    "name": "Black Road / Condon Road",
+    "auto": true,
+    "members": [
+     52155858
+    ]
+   },
+   {
+    "id": "1384102749",
+    "name": "Black Road / Ellege Road",
+    "auto": true,
+    "members": [
+     1384102749
+    ]
+   },
+   {
+    "id": "65432219",
+    "name": "Black Road / Thompson Road",
+    "auto": true,
+    "members": [
+     65432219
+    ]
+   },
+   {
+    "id": "52155810",
+    "name": "Black Road / Gist Road",
+    "auto": true,
+    "members": [
+     52155810
+    ]
+   },
+   {
+    "id": "12503991065",
+    "name": "Skyline Boulevard / Gist Road",
+    "auto": true,
+    "members": [
+     12503991065
+    ]
+   },
+   {
+    "id": "411398000",
+    "name": "Skyline Boulevard / Thompson Road",
+    "auto": true,
+    "members": [
+     411398000
+    ]
+   },
+   {
+    "id": "91043027",
+    "name": "Bear Creek Road / Skyline Boulevard",
+    "auto": true,
+    "members": [
+     91043027,
+     91059500
+    ]
+   },
+   {
+    "id": "5365914944",
+    "name": "Bear Creek Road / Sunset Ridge Road",
+    "auto": true,
+    "members": [
+     5365914944
+    ]
+   },
+   {
+    "id": "91059255",
+    "name": "Bear Creek Road / Moonrise Road",
+    "auto": true,
+    "members": [
+     91059255
+    ]
+   },
+   {
+    "id": "5265002465",
+    "name": "Bear Creek Road / Amber Ridge Loop",
+    "auto": true,
+    "members": [
+     5265002465
+    ]
+   },
+   {
+    "id": "91059018",
+    "name": "Bear Creek Road / Central Avenue",
+    "auto": true,
+    "members": [
+     91059018
+    ]
+   },
+   {
+    "id": "1553127689",
+    "name": "Skyline Boulevard / Black Road",
+    "auto": true,
+    "members": [
+     1553127689
+    ]
+   },
+   {
+    "id": "91047500",
+    "name": "Skyline Boulevard / Oak Ridge Road",
+    "auto": true,
+    "members": [
+     91047500
+    ]
+   },
+   {
+    "id": "521074281",
+    "name": "Skyline Boulevard / Las Cumbres Road",
+    "auto": true,
+    "members": [
+     521074281
+    ]
+   },
+   {
+    "id": "9027434469",
+    "name": "Las Cumbres Road / Favre Ridge Road",
+    "auto": true,
+    "members": [
+     9027434469
+    ]
+   },
+   {
+    "id": "314175894",
+    "name": "Congress Springs Road / Big Basin Way",
+    "auto": true,
+    "members": [
+     314175894,
+     314130729,
+     314175844,
+     314175744,
+     14031163917,
+     314175555,
+     65557609,
+     314175930,
+     314175571
+    ]
+   },
+   {
+    "id": "1078442361",
+    "name": "Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     1078442361
+    ]
+   },
+   {
+    "id": "4465687765",
+    "name": "River Street / Cabrillo Highway",
+    "auto": true,
+    "members": [
+     4465687765,
+     2681119845,
+     4465687775,
+     91046556,
+     4465687774,
+     345414364,
+     4465687753,
+     4465687773,
+     91100257,
+     4465687772
+    ]
+   },
+   {
+    "id": "91045926",
+    "name": "Water Street / Market Street",
+    "auto": true,
+    "members": [
+     91045926
+    ]
+   },
+   {
+    "id": "692295663",
+    "name": "Ocean Street / Water Street",
+    "auto": true,
+    "members": [
+     692295663,
+     745795359,
+     745795341,
+     692323789,
+     692323798,
+     692323799,
+     692323806,
+     7183651993,
+     7183651988
+    ]
+   },
+   {
+    "id": "6848583379",
+    "name": "River Street / Water Street",
+    "auto": true,
+    "members": [
+     6848583379,
+     2291838957,
+     6848583370,
+     2291838960
+    ]
+   },
+   {
+    "id": "65486830",
+    "name": "Summit Road / Morrill Road",
+    "auto": true,
+    "members": [
+     65486830
+    ]
+   },
+   {
+    "id": "317343565",
+    "name": "Summit Road / Loma Prieta Avenue",
+    "auto": true,
+    "members": [
+     317343565
+    ]
+   },
+   {
+    "id": "317344685",
+    "name": "Loma Prieta Avenue",
+    "auto": true,
+    "members": [
+     317344685
+    ]
+   },
+   {
+    "id": "832768380",
+    "name": "Loma Prieta Avenue / Loma Prieta Way",
+    "auto": true,
+    "members": [
+     832768380
+    ]
+   },
+   {
+    "id": "65484474",
+    "name": "Summit Road / Timmus Road",
+    "auto": true,
+    "members": [
+     65484474
+    ]
+   },
+   {
+    "id": "65537109",
+    "name": "Old Santa Cruz Highway / Idylwild Road",
+    "auto": true,
+    "members": [
+     65537109
+    ]
+   },
+   {
+    "id": "317349603",
+    "name": "Idylwild Road / Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     317349603,
+     264408131
+    ]
+   },
+   {
+    "id": "65537242",
+    "name": "Old Santa Cruz Highway / Aldercroft Heights Road",
+    "auto": true,
+    "members": [
+     65537242
+    ]
+   },
+   {
+    "id": "65494322",
+    "name": "Alma Bridge Road / Aldercroft Heights Road",
+    "auto": true,
+    "members": [
+     65494322
+    ]
+   },
+   {
+    "id": "65494285",
+    "name": "Alma Bridge Road / Soda Springs Road",
+    "auto": true,
+    "members": [
+     65494285
+    ]
+   },
+   {
+    "id": "65494334",
+    "name": "Alma Bridge Road",
+    "auto": true,
+    "members": [
+     65494334
+    ]
+   },
+   {
+    "id": "91048839",
+    "name": "Soquel San Jose Road / Hoover Road",
+    "auto": true,
+    "members": [
+     91048839
+    ]
+   },
+   {
+    "id": "91028245",
+    "name": "Olson Road",
+    "auto": true,
+    "members": [
+     91028245
+    ]
+   },
+   {
+    "id": "91048417",
+    "name": "Node 91048417",
+    "auto": true,
+    "members": [
+     91048417
+    ]
+   },
+   {
+    "id": "11154654696",
+    "name": "Olson Road",
+    "auto": true,
+    "members": [
+     11154654696
+    ]
+   },
+   {
+    "id": "12560466652",
+    "name": "Node 12560466652",
+    "auto": true,
+    "members": [
+     12560466652
+    ]
+   },
+   {
+    "id": "91053466",
+    "name": "East Zayante Road / Graham Hill Road",
+    "auto": true,
+    "members": [
+     91053466
+    ]
+   },
+   {
+    "id": "91053472",
+    "name": "Highway 9 / Graham Hill Road",
+    "auto": true,
+    "members": [
+     91053472,
+     1076685967,
+     1076685969
+    ]
+   },
+   {
+    "id": "91055395",
+    "name": "Empire Grade / Alba Road",
+    "auto": true,
+    "members": [
+     91055395
+    ]
+   },
+   {
+    "id": "91095732",
+    "name": "Empire Grade / Jamison Creek Road",
+    "auto": true,
+    "members": [
+     91095732
+    ]
+   },
+   {
+    "id": "91095675",
+    "name": "Jamison Creek Road / Big Basin Way",
+    "auto": true,
+    "members": [
+     91095675
+    ]
+   },
+   {
+    "id": "91070276",
+    "name": "Big Basin Way / Central Avenue",
+    "auto": true,
+    "members": [
+     91070276
+    ]
+   },
+   {
+    "id": "91030756",
+    "name": "Empire Grade / Ice Cream Grade",
+    "auto": true,
+    "members": [
+     91030756
+    ]
+   },
+   {
+    "id": "91081731",
+    "name": "Empire Grade / Smith Grade",
+    "auto": true,
+    "members": [
+     91081731
+    ]
+   },
+   {
+    "id": "91047732",
+    "name": "Empire Grade / High Street",
+    "auto": true,
+    "members": [
+     91047732
+    ]
+   },
+   {
+    "id": "91069145",
+    "name": "Western Drive / Cabrillo Highway",
+    "auto": true,
+    "members": [
+     91069145
+    ]
+   },
+   {
+    "id": "91055301",
+    "name": "Alba Road / CA 9",
+    "auto": true,
+    "members": [
+     91055301
+    ]
+   },
+   {
+    "id": "813411549",
+    "name": "Old Japanese Road West / Old Japanese Road",
+    "auto": true,
+    "members": [
+     813411549
+    ]
+   },
+   {
+    "id": "91044296",
+    "name": "Glenwood Drive / Clark Road",
+    "auto": true,
+    "members": [
+     91044296
+    ]
+   },
+   {
+    "id": "366730705",
+    "name": "Glenwood Drive / Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     366730705,
+     366730683,
+     91044294,
+     91087110,
+     366730685
+    ]
+   },
+   {
+    "id": "91042697",
+    "name": "Glenwood Drive / Main Boulevard",
+    "auto": true,
+    "members": [
+     91042697
+    ]
+   },
+   {
+    "id": "91051284",
+    "name": "Glenwood Drive / Fern Drive",
+    "auto": true,
+    "members": [
+     91051284
+    ]
+   },
+   {
+    "id": "91073587",
+    "name": "Glenwood Drive / Eagle Road",
+    "auto": true,
+    "members": [
+     91073587
+    ]
+   },
+   {
+    "id": "91065919",
+    "name": "Glenwood Cutoff / Glenwood Drive",
+    "auto": true,
+    "members": [
+     91065919
+    ]
+   },
+   {
+    "id": "427521958",
+    "name": "Glenwood Cutoff / Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     427521958,
+     1099084512,
+     1099084517
+    ]
+   },
+   {
+    "id": "91067022",
+    "name": "Mountain Charlie Road / Glenwood Drive",
+    "auto": true,
+    "members": [
+     91067022
+    ]
+   },
+   {
+    "id": "1563802536",
+    "name": "Mount Hermon Road / CA 17 Business",
+    "auto": true,
+    "members": [
+     1563802536,
+     1563802515,
+     491577236,
+     1563802627,
+     1563802639,
+     491577300,
+     490514610
+    ]
+   },
+   {
+    "id": "91046967",
+    "name": "Mount Hermon Road / Graham Hill Road",
+    "auto": true,
+    "members": [
+     91046967,
+     1076685986,
+     1076685960,
+     6865312351,
+     1867981785,
+     1076681858
+    ]
+   },
+   {
+    "id": "91045281",
+    "name": "Sugarloaf Road",
+    "auto": true,
+    "members": [
+     91045281
+    ]
+   },
+   {
+    "id": "91063917",
+    "name": "Charles Hill Road / Charles Hill Court",
+    "auto": true,
+    "members": [
+     91063917
+    ]
+   },
+   {
+    "id": "91063908",
+    "name": "Vine Hill Road / Charles Hill Road",
+    "auto": true,
+    "members": [
+     91063908
+    ]
+   },
+   {
+    "id": "91051847",
+    "name": "Locust Road / Loma Prieta Avenue",
+    "auto": true,
+    "members": [
+     91051847
+    ]
+   },
+   {
+    "id": "26497307",
+    "name": "Oneda Court / Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     26497307,
+     3196380255,
+     4523995284,
+     507424447,
+     10657134126,
+     65592882,
+     1077914961,
+     3196380253,
+     65592888
+    ]
+   },
+   {
+    "id": "65486655",
+    "name": "Summit Road / Bayview Drive",
+    "auto": true,
+    "members": [
+     65486655
+    ]
+   },
+   {
+    "id": "65436573",
+    "name": "Summit Road / Virdelle Drive",
+    "auto": true,
+    "members": [
+     65436573
+    ]
+   },
+   {
+    "id": "65592869",
+    "name": "Madrone Drive / Broadway Road",
+    "auto": true,
+    "members": [
+     65592869,
+     65629714,
+     65592868
+    ]
+   },
+   {
+    "id": "65509424",
+    "name": "Broadway Road / Idalyn Drive",
+    "auto": true,
+    "members": [
+     65509424
+    ]
+   },
+   {
+    "id": "65530623",
+    "name": "Judith Court / La Verne Drive",
+    "auto": true,
+    "members": [
+     65530623
+    ]
+   },
+   {
+    "id": "418938395",
+    "name": "Judith Court / Mountain View Court",
+    "auto": true,
+    "members": [
+     418938395
+    ]
+   },
+   {
+    "id": "65524627",
+    "name": "Locust Drive / Mountain View Court",
+    "auto": true,
+    "members": [
+     65524627
+    ]
+   },
+   {
+    "id": "65524636",
+    "name": "Locust Drive / Santa Ana Road",
+    "auto": true,
+    "members": [
+     65524636
+    ]
+   },
+   {
+    "id": "65565135",
+    "name": "Santa Ana Road / Naomi Court",
+    "auto": true,
+    "members": [
+     65565135
+    ]
+   },
+   {
+    "id": "11135726537",
+    "name": "Santa Ana Road / Lenore Court",
+    "auto": true,
+    "members": [
+     11135726537
+    ]
+   },
+   {
+    "id": "65565129",
+    "name": "Santa Ana Road / Bayview Drive",
+    "auto": true,
+    "members": [
+     65565129
+    ]
+   },
+   {
+    "id": "65565145",
+    "name": "Santa Ana Road / Sylvan Court",
+    "auto": true,
+    "members": [
+     65565145
+    ]
+   },
+   {
+    "id": "65673321",
+    "name": "Sylvan Court / Pine Trail",
+    "auto": true,
+    "members": [
+     65673321
+    ]
+   },
+   {
+    "id": "65538538",
+    "name": "Goebel Court / Santa Ana Road",
+    "auto": true,
+    "members": [
+     65538538
+    ]
+   },
+   {
+    "id": "65565156",
+    "name": "Santa Ana Road / Lindbergh Drive",
+    "auto": true,
+    "members": [
+     65565156
+    ]
+   },
+   {
+    "id": "6405282607",
+    "name": "Woolaroc Drive / Dorothy Way",
+    "auto": true,
+    "members": [
+     6405282607
+    ]
+   },
+   {
+    "id": "65581822",
+    "name": "Woolaroc Drive / Dorothy Way",
+    "auto": true,
+    "members": [
+     65581822
+    ]
+   },
+   {
+    "id": "65655404",
+    "name": "Dorothy Way / Irma Lyle Drive",
+    "auto": true,
+    "members": [
+     65655404
+    ]
+   },
+   {
+    "id": "65581819",
+    "name": "Woolaroc Drive / Bayview Drive",
+    "auto": true,
+    "members": [
+     65581819
+    ]
+   },
+   {
+    "id": "65620044",
+    "name": "Fern Avenue / Bayview Drive",
+    "auto": true,
+    "members": [
+     65620044
+    ]
+   },
+   {
+    "id": "65650763",
+    "name": "Bayview Drive / Irma Lyle Drive",
+    "auto": true,
+    "members": [
+     65650763
+    ]
+   },
+   {
+    "id": "65388416",
+    "name": "Virdelle Drive / Bayview Drive",
+    "auto": true,
+    "members": [
+     65388416
+    ]
+   },
+   {
+    "id": "65463135",
+    "name": "Mc Luckie / Fern Avenue",
+    "auto": true,
+    "members": [
+     65463135
+    ]
+   },
+   {
+    "id": "65449738",
+    "name": "Zella Court / Fern Avenue",
+    "auto": true,
+    "members": [
+     65449738
+    ]
+   },
+   {
+    "id": "65449734",
+    "name": "Zella Court / Bayview Drive",
+    "auto": true,
+    "members": [
+     65449734
+    ]
+   },
+   {
+    "id": "6405282595",
+    "name": "Bayview Drive / Gloria Court",
+    "auto": true,
+    "members": [
+     6405282595
+    ]
+   },
+   {
+    "id": "11135726535",
+    "name": "Bayview Drive / Eileen Court",
+    "auto": true,
+    "members": [
+     11135726535
+    ]
+   },
+   {
+    "id": "11135726565",
+    "name": "Patricia Court / La Verne Drive",
+    "auto": true,
+    "members": [
+     11135726565
+    ]
+   },
+   {
+    "id": "65524630",
+    "name": "Locust Drive / June Court",
+    "auto": true,
+    "members": [
+     65524630
+    ]
+   },
+   {
+    "id": "65584189",
+    "name": "La Verne Drive / La Salle Drive",
+    "auto": true,
+    "members": [
+     65584189
+    ]
+   },
+   {
+    "id": "418938422",
+    "name": "La Verne Drive / Esther Court",
+    "auto": true,
+    "members": [
+     418938422
+    ]
+   },
+   {
+    "id": "65463035",
+    "name": "La Verne Drive / Virginia Drive",
+    "auto": true,
+    "members": [
+     65463035
+    ]
+   },
+   {
+    "id": "65517789",
+    "name": "Helen Way / Mary Alice Way",
+    "auto": true,
+    "members": [
+     65517789
+    ]
+   },
+   {
+    "id": "65433604",
+    "name": "Madrone Drive / Laurel Drive",
+    "auto": true,
+    "members": [
+     65433604
+    ]
+   },
+   {
+    "id": "65429462",
+    "name": "Redwood Drive / Laurel Drive",
+    "auto": true,
+    "members": [
+     65429462
+    ]
+   },
+   {
+    "id": "65592880",
+    "name": "Madrone Drive / Oak Drive",
+    "auto": true,
+    "members": [
+     65592880
+    ]
+   },
+   {
+    "id": "12871097757",
+    "name": "Redwood Drive",
+    "auto": true,
+    "members": [
+     12871097757
+    ]
+   },
+   {
+    "id": "65429457",
+    "name": "Redwood Drive / Lee Drive",
+    "auto": true,
+    "members": [
+     65429457
+    ]
+   },
+   {
+    "id": "65451767",
+    "name": "Lee Drive / Rose Court",
+    "auto": true,
+    "members": [
+     65451767
+    ]
+   },
+   {
+    "id": "65592871",
+    "name": "Madrone Drive / Mary Alice Way",
+    "auto": true,
+    "members": [
+     65592871
+    ]
+   },
+   {
+    "id": "65592892",
+    "name": "Ida Drive / Madrone Drive",
+    "auto": true,
+    "members": [
+     65592892
+    ]
+   },
+   {
+    "id": "65608663",
+    "name": "Betty Ann Court / Jessie Way",
+    "auto": true,
+    "members": [
+     65608663
+    ]
+   },
+   {
+    "id": "10926015110",
+    "name": "Old Santa Cruz Highway / Ida Drive",
+    "auto": true,
+    "members": [
+     10926015110,
+     10926015120,
+     1078332333
+    ]
+   },
+   {
+    "id": "65499335",
+    "name": "Geraldine Court / Oneda Court",
+    "auto": true,
+    "members": [
+     65499335
+    ]
+   },
+   {
+    "id": "65437894",
+    "name": "Mozelle Court / Geraldine Court",
+    "auto": true,
+    "members": [
+     65437894
+    ]
+   },
+   {
+    "id": "433471843",
+    "name": "Old Santa Cruz Highway / Ogallala Warpath Road",
+    "auto": true,
+    "members": [
+     433471843
+    ]
+   },
+   {
+    "id": "5780769477",
+    "name": "Old Santa Cruz Highway / Edwards Road",
+    "auto": true,
+    "members": [
+     5780769477
+    ]
+   },
+   {
+    "id": "5780708366",
+    "name": "Old Santa Cruz Highway / Ogallala Warpath Road",
+    "auto": true,
+    "members": [
+     5780708366
+    ]
+   },
+   {
+    "id": "5780762554",
+    "name": "Apache Trail / Ogallala Warpath Road",
+    "auto": true,
+    "members": [
+     5780762554
+    ]
+   },
+   {
+    "id": "5780761878",
+    "name": "Apache Trail / Walla Walla Trail",
+    "auto": true,
+    "members": [
+     5780761878
+    ]
+   },
+   {
+    "id": "5780708490",
+    "name": "Comanche Trail / Apache Trail",
+    "auto": true,
+    "members": [
+     5780708490
+    ]
+   },
+   {
+    "id": "5780708432",
+    "name": "Crow Trail / Ogallala Warpath Road",
+    "auto": true,
+    "members": [
+     5780708432
+    ]
+   },
+   {
+    "id": "5780708434",
+    "name": "Crow Trail / Kiowa Trail",
+    "auto": true,
+    "members": [
+     5780708434
+    ]
+   },
+   {
+    "id": "5780708470",
+    "name": "Kiowa Trail / Comanche Trail",
+    "auto": true,
+    "members": [
+     5780708470,
+     5780708452,
+     5780708472
+    ]
+   },
+   {
+    "id": "5780762464",
+    "name": "Kiowa Trail / Cherokee Trail",
+    "auto": true,
+    "members": [
+     5780762464
+    ]
+   },
+   {
+    "id": "5780769485",
+    "name": "Navajo Trail / Edwards Road",
+    "auto": true,
+    "members": [
+     5780769485
+    ]
+   },
+   {
+    "id": "13961028977",
+    "name": "Arapaho Trail / Ogallala Warpath Road",
+    "auto": true,
+    "members": [
+     13961028977
+    ]
+   },
+   {
+    "id": "5780708466",
+    "name": "Kiowa Trail / Navajo Trail",
+    "auto": true,
+    "members": [
+     5780708466
+    ]
+   },
+   {
+    "id": "5780762529",
+    "name": "Cherokee Trail / Umatilla Trail",
+    "auto": true,
+    "members": [
+     5780762529
+    ]
+   },
+   {
+    "id": "5780762468",
+    "name": "Comanche Trail / Navajo Trail",
+    "auto": true,
+    "members": [
+     5780762468
+    ]
+   },
+   {
+    "id": "13961028982",
+    "name": "Arapaho Trail / Navajo Trail",
+    "auto": true,
+    "members": [
+     13961028982
+    ]
+   },
+   {
+    "id": "5780762525",
+    "name": "Navajo Trail / Pawnee Trail",
+    "auto": true,
+    "members": [
+     5780762525
+    ]
+   },
+   {
+    "id": "13961028939",
+    "name": "Comanche Trail / Deleware Trail",
+    "auto": true,
+    "members": [
+     13961028939
+    ]
+   },
+   {
+    "id": "5780762512",
+    "name": "Comanche Trail / Blackfoot Trail",
+    "auto": true,
+    "members": [
+     5780762512
+    ]
+   },
+   {
+    "id": "5780708516",
+    "name": "Nez Perce Trail / Blackfoot Trail",
+    "auto": true,
+    "members": [
+     5780708516
+    ]
+   },
+   {
+    "id": "5780708508",
+    "name": "Comanche Trail / Nez Perce Trail",
+    "auto": true,
+    "members": [
+     5780708508
+    ]
+   },
+   {
+    "id": "5780708531",
+    "name": "Comanche Trail / Nez Perce Trail",
+    "auto": true,
+    "members": [
+     5780708531
+    ]
+   },
+   {
+    "id": "5780762514",
+    "name": "Comanche Trail / Modoc (Cheyenne) Trail",
+    "auto": true,
+    "members": [
+     5780762514
+    ]
+   },
+   {
+    "id": "5780762434",
+    "name": "Comanche Trail / Sioux Trail",
+    "auto": true,
+    "members": [
+     5780762434
+    ]
+   },
+   {
+    "id": "5780708545",
+    "name": "Comanche Trail / Assiniboine Trail",
+    "auto": true,
+    "members": [
+     5780708545
+    ]
+   },
+   {
+    "id": "4915579694",
+    "name": "Aldercroft Heights Road / Locust Drive",
+    "auto": true,
+    "members": [
+     4915579694
+    ]
+   },
+   {
+    "id": "11586537866",
+    "name": "Aldercroft Heights Road / Laurel Drive",
+    "auto": true,
+    "members": [
+     11586537866
+    ]
+   },
+   {
+    "id": "5040130740",
+    "name": "Laurel Drive / Smith Ranch",
+    "auto": true,
+    "members": [
+     5040130740
+    ]
+   },
+   {
+    "id": "65448887",
+    "name": "Laurel Drive / Locust Drive",
+    "auto": true,
+    "members": [
+     65448887
+    ]
+   },
+   {
+    "id": "65524590",
+    "name": "Locust Drive / Panorama Drive",
+    "auto": true,
+    "members": [
+     65524590
+    ]
+   },
+   {
+    "id": "65460573",
+    "name": "Panorama Heights Road / Panorama Drive",
+    "auto": true,
+    "members": [
+     65460573
+    ]
+   },
+   {
+    "id": "65427436",
+    "name": "Rattlesnake Alley / Panorama Heights",
+    "auto": true,
+    "members": [
+     65427436
+    ]
+   },
+   {
+    "id": "65427434",
+    "name": "Rattlesnake Alley / Panorama Drive",
+    "auto": true,
+    "members": [
+     65427434
+    ]
+   },
+   {
+    "id": "65650116",
+    "name": "Sunshine Lane / Panorama Drive",
+    "auto": true,
+    "members": [
+     65650116
+    ]
+   },
+   {
+    "id": "65428536",
+    "name": "Aldercroft Heights Road / Shady Lane",
+    "auto": true,
+    "members": [
+     65428536
+    ]
+   },
+   {
+    "id": "65463079",
+    "name": "Aldercroft Heights Road / Sunnyside Road",
+    "auto": true,
+    "members": [
+     65463079
+    ]
+   },
+   {
+    "id": "65474311",
+    "name": "Winding Way / Roaring Water Way",
+    "auto": true,
+    "members": [
+     65474311
+    ]
+   },
+   {
+    "id": "65460912",
+    "name": "Old Mine Road / Oak Court",
+    "auto": true,
+    "members": [
+     65460912
+    ]
+   },
+   {
+    "id": "65430513",
+    "name": "Old Gold Mine Road / Aldercroft Heights Road",
+    "auto": true,
+    "members": [
+     65430513
+    ]
+   },
+   {
+    "id": "65584944",
+    "name": "Aldercroft Heights Road / Gold Mine Road",
+    "auto": true,
+    "members": [
+     65584944
+    ]
+   },
+   {
+    "id": "65584983",
+    "name": "Aldercroft Heights Road / Roaring Water Way",
+    "auto": true,
+    "members": [
+     65584983
+    ]
+   },
+   {
+    "id": "65460908",
+    "name": "Old Mine Road / Aldercroft Heights Road",
+    "auto": true,
+    "members": [
+     65460908
+    ]
+   },
+   {
+    "id": "3590654698",
+    "name": "Santa Cruz Ridge Road / Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     3590654698,
+     10682509481,
+     10682509446
+    ]
+   },
+   {
+    "id": "3590654696",
+    "name": "Santa Cruz Ridge Road / Sunset View Road",
+    "auto": true,
+    "members": [
+     3590654696
+    ]
+   },
+   {
+    "id": "91053608",
+    "name": "Long Branch Road / Redwood Lodge Road",
+    "auto": true,
+    "members": [
+     91053608
+    ]
+   },
+   {
+    "id": "91053627",
+    "name": "Tall Tree Hill / Redwood Lodge Road",
+    "auto": true,
+    "members": [
+     91053627
+    ]
+   },
+   {
+    "id": "91046994",
+    "name": "Sugar Valley Road / Tucker Road",
+    "auto": true,
+    "members": [
+     91046994
+    ]
+   },
+   {
+    "id": "91059372",
+    "name": "Bear Creek Road / Bear Creek Way",
+    "auto": true,
+    "members": [
+     91059372
+    ]
+   },
+   {
+    "id": "427756051",
+    "name": "Bear Creek Road / Hidden Springs Lane",
+    "auto": true,
+    "members": [
+     427756051
+    ]
+   },
+   {
+    "id": "91059317",
+    "name": "Bear Creek Road / Bear Creek Canyon Road",
+    "auto": true,
+    "members": [
+     91059317
+    ]
+   },
+   {
+    "id": "91058052",
+    "name": "Bear Creek Road / Deer Creek Road",
+    "auto": true,
+    "members": [
+     91058052
+    ]
+   },
+   {
+    "id": "91041379",
+    "name": "Bear Creek Road / Starr Creek Road",
+    "auto": true,
+    "members": [
+     91041379
+    ]
+   },
+   {
+    "id": "12525915743",
+    "name": "Upper Deer Creek Road / Jack's Road",
+    "auto": true,
+    "members": [
+     12525915743
+    ]
+   },
+   {
+    "id": "1306119461",
+    "name": "Las Cumbres Road / Beatty Ridge Road",
+    "auto": true,
+    "members": [
+     1306119461
+    ]
+   },
+   {
+    "id": "1306119727",
+    "name": "Las Cumbres Road / Knuth Road",
+    "auto": true,
+    "members": [
+     1306119727
+    ]
+   },
+   {
+    "id": "91074472",
+    "name": "Las Cumbres Road / Reed Knoll Road",
+    "auto": true,
+    "members": [
+     91074472
+    ]
+   },
+   {
+    "id": "12470856328",
+    "name": "Las Cumbres Road / Old Vineyard Road",
+    "auto": true,
+    "members": [
+     12470856328
+    ]
+   },
+   {
+    "id": "1306119249",
+    "name": "Las Cumbres Road / Grizzly Rock Road",
+    "auto": true,
+    "members": [
+     1306119249
+    ]
+   },
+   {
+    "id": "7541077413",
+    "name": "Las Cumbres Road / Shear Creek Road",
+    "auto": true,
+    "members": [
+     7541077413
+    ]
+   },
+   {
+    "id": "11520091236",
+    "name": "Summit Road / Marty Road",
+    "auto": true,
+    "members": [
+     11520091236
+    ]
+   },
+   {
+    "id": "13310264455",
+    "name": "Jensen Springs Road / Marty Road",
+    "auto": true,
+    "members": [
+     13310264455
+    ]
+   },
+   {
+    "id": "4927028819",
+    "name": "Mountain Charlie Road / Pierce Road",
+    "auto": true,
+    "members": [
+     4927028819
+    ]
+   },
+   {
+    "id": "413773504",
+    "name": "Mountain Charlie Road / Old Japanese Road",
+    "auto": true,
+    "members": [
+     413773504
+    ]
+   },
+   {
+    "id": "91066946",
+    "name": "Mountain Charlie Road / Riva Ridge Drive",
+    "auto": true,
+    "members": [
+     91066946
+    ]
+   },
+   {
+    "id": "91088192",
+    "name": "Riva Ridge Drive / Burl Court",
+    "auto": true,
+    "members": [
+     91088192
+    ]
+   },
+   {
+    "id": "91079285",
+    "name": "Montrose Court / Riva Ridge Drive",
+    "auto": true,
+    "members": [
+     91079285
+    ]
+   },
+   {
+    "id": "91082342",
+    "name": "Midpine Court / Riva Ridge Drive",
+    "auto": true,
+    "members": [
+     91082342
+    ]
+   },
+   {
+    "id": "91088186",
+    "name": "Riva Ridge Drive / Tim Tam Court",
+    "auto": true,
+    "members": [
+     91088186
+    ]
+   },
+   {
+    "id": "91088182",
+    "name": "Riva Ridge Drive / Majestic Drive",
+    "auto": true,
+    "members": [
+     91088182
+    ]
+   },
+   {
+    "id": "91088179",
+    "name": "Riva Ridge Drive / Citation Drive",
+    "auto": true,
+    "members": [
+     91088179
+    ]
+   },
+   {
+    "id": "91063847",
+    "name": "Citation Court / Citation Drive",
+    "auto": true,
+    "members": [
+     91063847
+    ]
+   },
+   {
+    "id": "418946543",
+    "name": "Hutchinson Road / Riva Ridge Drive",
+    "auto": true,
+    "members": [
+     418946543
+    ]
+   },
+   {
+    "id": "91050590",
+    "name": "Hutchinson Road / Tahama Court",
+    "auto": true,
+    "members": [
+     91050590
+    ]
+   },
+   {
+    "id": "91050594",
+    "name": "Hutchinson Road / Old Ranch Road",
+    "auto": true,
+    "members": [
+     91050594
+    ]
+   },
+   {
+    "id": "91064370",
+    "name": "Old Ranch Road / Blue Mountain Ridge Road",
+    "auto": true,
+    "members": [
+     91064370
+    ]
+   },
+   {
+    "id": "65486811",
+    "name": "Summit Road / Mountain Charlie Road",
+    "auto": true,
+    "members": [
+     65486811
+    ]
+   },
+   {
+    "id": "65486810",
+    "name": "Summit Road / Old Summit Road",
+    "auto": true,
+    "members": [
+     65486810
+    ]
+   },
+   {
+    "id": "65505265",
+    "name": "Mountain Charlie Road / Sunrise Drive",
+    "auto": true,
+    "members": [
+     65505265
+    ]
+   },
+   {
+    "id": "65505227",
+    "name": "Old Santa Cruz Highway / Mountain Charlie Road",
+    "auto": true,
+    "members": [
+     65505227
+    ]
+   },
+   {
+    "id": "4430042485",
+    "name": "Old Santa Cruz Highway / Greenwood Drive",
+    "auto": true,
+    "members": [
+     4430042485
+    ]
+   },
+   {
+    "id": "65460136",
+    "name": "Norman Drive / Greenwood Drive",
+    "auto": true,
+    "members": [
+     65460136
+    ]
+   },
+   {
+    "id": "65546081",
+    "name": "Greenwood Drive / Baldwin Drive",
+    "auto": true,
+    "members": [
+     65546081
+    ]
+   },
+   {
+    "id": "65537181",
+    "name": "Old Santa Cruz Highway / Call of the Wild Road",
+    "auto": true,
+    "members": [
+     65537181
+    ]
+   },
+   {
+    "id": "65566379",
+    "name": "Call of the Wild Road / Gillette Drive",
+    "auto": true,
+    "members": [
+     65566379
+    ]
+   },
+   {
+    "id": "65566333",
+    "name": "Call of the Wild Road / Pineridge Way",
+    "auto": true,
+    "members": [
+     65566333
+    ]
+   },
+   {
+    "id": "65518312",
+    "name": "Highland Way / Pineridge Way",
+    "auto": true,
+    "members": [
+     65518312
+    ]
+   },
+   {
+    "id": "317342305",
+    "name": "Summit Road / Chasewood Drive",
+    "auto": true,
+    "members": [
+     317342305
+    ]
+   },
+   {
+    "id": "65595891",
+    "name": "Nikkie Lane / Chasewood Drive",
+    "auto": true,
+    "members": [
+     65595891
+    ]
+   },
+   {
+    "id": "317342321",
+    "name": "Summit Road / Timmies Lane",
+    "auto": true,
+    "members": [
+     317342321
+    ]
+   },
+   {
+    "id": "65486750",
+    "name": "Summit Road / Summit Canyon Drive",
+    "auto": true,
+    "members": [
+     65486750
+    ]
+   },
+   {
+    "id": "65484465",
+    "name": "Summit Road / Trail Ridge",
+    "auto": true,
+    "members": [
+     65484465
+    ]
+   },
+   {
+    "id": "65486766",
+    "name": "Summit Road / Chasewood Drive",
+    "auto": true,
+    "members": [
+     65486766
+    ]
+   },
+   {
+    "id": "65484491",
+    "name": "Summit Road / Smittys Street",
+    "auto": true,
+    "members": [
+     65484491
+    ]
+   },
+   {
+    "id": "65486741",
+    "name": "Summit Road / Scagia Lane",
+    "auto": true,
+    "members": [
+     65486741
+    ]
+   },
+   {
+    "id": "317341686",
+    "name": "Summit Road / Old Summit Road",
+    "auto": true,
+    "members": [
+     317341686
+    ]
+   },
+   {
+    "id": "91080255",
+    "name": "Bohnen Road / Barbara Lee Lane",
+    "auto": true,
+    "members": [
+     91080255
+    ]
+   },
+   {
+    "id": "91093375",
+    "name": "Richardson Road / Bohnen Road",
+    "auto": true,
+    "members": [
+     91093375
+    ]
+   },
+   {
+    "id": "91102880",
+    "name": "Jarvis Road / Bohnen Road",
+    "auto": true,
+    "members": [
+     91102880
+    ]
+   },
+   {
+    "id": "91046356",
+    "name": "Laurel Glen Road / Nicasio Way",
+    "auto": true,
+    "members": [
+     91046356
+    ]
+   },
+   {
+    "id": "91046353",
+    "name": "Laurel Glen Road / Echo Ridge Lane",
+    "auto": true,
+    "members": [
+     91046353
+    ]
+   },
+   {
+    "id": "91046352",
+    "name": "Laurel Glen Road / Sunset Lane",
+    "auto": true,
+    "members": [
+     91046352
+    ]
+   },
+   {
+    "id": "91088650",
+    "name": "Sunset Lane / Twin Lane",
+    "auto": true,
+    "members": [
+     91088650
+    ]
+   },
+   {
+    "id": "91093580",
+    "name": "Twin Lane / Twin View Lane",
+    "auto": true,
+    "members": [
+     91093580
+    ]
+   },
+   {
+    "id": "91033777",
+    "name": "Sunset Lane / Sun Ridge",
+    "auto": true,
+    "members": [
+     91033777
+    ]
+   },
+   {
+    "id": "91027763",
+    "name": "Sunset Lane",
+    "auto": true,
+    "members": [
+     91027763
+    ]
+   },
+   {
+    "id": "91038531",
+    "name": "Sunset Lane",
+    "auto": true,
+    "members": [
+     91038531
+    ]
+   },
+   {
+    "id": "91087193",
+    "name": "Nicasio Way / Sunset Lane",
+    "auto": true,
+    "members": [
+     91087193
+    ]
+   },
+   {
+    "id": "91066837",
+    "name": "Branciforte Drive / Happy Valley Road",
+    "auto": true,
+    "members": [
+     91066837
+    ]
+   },
+   {
+    "id": "91076827",
+    "name": "Happy Valley Road / Crystal Creek Lane",
+    "auto": true,
+    "members": [
+     91076827
+    ]
+   },
+   {
+    "id": "832460076",
+    "name": "Happy Valley Road / Wild Way",
+    "auto": true,
+    "members": [
+     832460076
+    ]
+   },
+   {
+    "id": "91028964",
+    "name": "Happy Valley Road / Happy Valley Way",
+    "auto": true,
+    "members": [
+     91028964
+    ]
+   },
+   {
+    "id": "91028972",
+    "name": "Conservancy Loop",
+    "auto": true,
+    "members": [
+     91028972
+    ]
+   },
+   {
+    "id": "91093797",
+    "name": "Lost Pear Way",
+    "auto": true,
+    "members": [
+     91093797
+    ]
+   },
+   {
+    "id": "91093791",
+    "name": "Lost Pear Way / South Pippin Lane",
+    "auto": true,
+    "members": [
+     91093791
+    ]
+   },
+   {
+    "id": "91027820",
+    "name": "South Pippin Lane",
+    "auto": true,
+    "members": [
+     91027820
+    ]
+   },
+   {
+    "id": "91064882",
+    "name": "Conservancy Loop",
+    "auto": true,
+    "members": [
+     91064882
+    ]
+   },
+   {
+    "id": "91064886",
+    "name": "South Pippin Lane / North Pippin Lane",
+    "auto": true,
+    "members": [
+     91064886
+    ]
+   },
+   {
+    "id": "91036948",
+    "name": "South Pippin Lane",
+    "auto": true,
+    "members": [
+     91036948
+    ]
+   },
+   {
+    "id": "91036959",
+    "name": "North Pippin Lane",
+    "auto": true,
+    "members": [
+     91036959
+    ]
+   },
+   {
+    "id": "91094960",
+    "name": "North Pippin Lane",
+    "auto": true,
+    "members": [
+     91094960
+    ]
+   },
+   {
+    "id": "91027795",
+    "name": "North Pippin Lane",
+    "auto": true,
+    "members": [
+     91027795
+    ]
+   },
+   {
+    "id": "91037060",
+    "name": "Cowboy Way / North Pippin Lane",
+    "auto": true,
+    "members": [
+     91037060
+    ]
+   },
+   {
+    "id": "1096438829",
+    "name": "Branciforte Drive / Branciforte Ridge",
+    "auto": true,
+    "members": [
+     1096438829
+    ]
+   },
+   {
+    "id": "91066873",
+    "name": "Branciforte Drive / Wild Flower Lane",
+    "auto": true,
+    "members": [
+     91066873
+    ]
+   },
+   {
+    "id": "91066864",
+    "name": "Branciforte Drive / Tie Gulch Road",
+    "auto": true,
+    "members": [
+     91066864
+    ]
+   },
+   {
+    "id": "91084507",
+    "name": "North Rodeo Gulch Road / Hidden Valley Road",
+    "auto": true,
+    "members": [
+     91084507
+    ]
+   },
+   {
+    "id": "91063047",
+    "name": "Muir Drive / Hidden Valley Road",
+    "auto": true,
+    "members": [
+     91063047
+    ]
+   },
+   {
+    "id": "91083368",
+    "name": "Suncrest Drive / Hidden Valley Road",
+    "auto": true,
+    "members": [
+     91083368
+    ]
+   },
+   {
+    "id": "91028861",
+    "name": "Hidden Valley Road",
+    "auto": true,
+    "members": [
+     91028861
+    ]
+   },
+   {
+    "id": "12395490695",
+    "name": "Ocean Vista Drive / Hidden Valley Road",
+    "auto": true,
+    "members": [
+     12395490695
+    ]
+   },
+   {
+    "id": "2173095651",
+    "name": "Hidden Valley Road / Hidden Valley Lane",
+    "auto": true,
+    "members": [
+     2173095651
+    ]
+   },
+   {
+    "id": "91048855",
+    "name": "Soquel San Jose Road / Soquel Creek Road",
+    "auto": true,
+    "members": [
+     91048855
+    ]
+   },
+   {
+    "id": "91033309",
+    "name": "Soquel San Jose Road / Sundance Hill",
+    "auto": true,
+    "members": [
+     91033309
+    ]
+   },
+   {
+    "id": "91048849",
+    "name": "Soquel San Jose Road / Olive Springs Road",
+    "auto": true,
+    "members": [
+     91048849
+    ]
+   },
+   {
+    "id": "91036965",
+    "name": "Pau Hana Drive / Olive Springs Road",
+    "auto": true,
+    "members": [
+     91036965
+    ]
+   },
+   {
+    "id": "4257726350",
+    "name": "Soquel San Jose Road / Wildberry Lane",
+    "auto": true,
+    "members": [
+     4257726350
+    ]
+   },
+   {
+    "id": "1283153712",
+    "name": "Soquel San Jose Road / Citron Drive",
+    "auto": true,
+    "members": [
+     1283153712
+    ]
+   },
+   {
+    "id": "91028049",
+    "name": "Soquel San Jose Road / Paradise Canyon Road",
+    "auto": true,
+    "members": [
+     91028049
+    ]
+   }
+  ]
+ }
+}

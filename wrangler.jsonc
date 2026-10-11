@@ -1,0 +1,12 @@
+// Cloudflare deploy of the public map: a static-assets-only Worker serving site/.
+//   node scripts/build-site.mjs && npx wrangler deploy
+{
+  "name": "subway-95033",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./site" },
+  // The public map's domain (also served on the account's *.workers.dev address). For a deploy
+  // of your own, change "name" and drop or replace this route.
+  "routes": [
+    { "pattern": "95033map.com", "custom_domain": true }
+  ]
+}

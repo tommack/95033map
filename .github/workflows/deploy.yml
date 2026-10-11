@@ -1,0 +1,22 @@
+# Deploys the public map to Cloudflare, from the Actions tab (Run workflow). Needs two repository
+# secrets: CLOUDFLARE_API_TOKEN (a token with the "Edit Cloudflare Workers" template) and
+# CLOUDFLARE_ACCOUNT_ID. To deploy on every push to main instead, add `push: { branches: [main] }`.
+name: Deploy
+on:
+  workflow_dispatch:
+concurrency: deploy
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the public map
+        run: node scripts/build-site.mjs --strict
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

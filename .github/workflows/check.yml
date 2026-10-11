@@ -1,0 +1,18 @@
+# On every push and pull request: the public map builds without warnings (e.g. a neighborhood map
+# that's out of date) and data/slugs.json, which keeps old links working, is committed up to date.
+name: Check
+on:
+  push:
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the public map
+        run: node scripts/build-site.mjs --strict
+      - name: Link names are committed
+        run: git diff --exit-code data/slugs.json || (echo "::error::data/slugs.json changed: run npm run build and commit it" && exit 1)

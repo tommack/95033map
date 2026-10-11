@@ -1,0 +1,10 @@
+{
+  "name": "subway-95033",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/server.mjs",
+    "build": "node scripts/build-site.mjs",
+    "deploy": "node scripts/build-site.mjs && npx wrangler deploy"
+  }
+}

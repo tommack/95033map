@@ -1,0 +1,15 @@
+# Dependencies and tool caches
+node_modules/
+.wrangler/
+.DS_Store
+
+# The dev server's automatic backups of the editing state (data/backups/, see scripts/server.mjs)
+data/backups/
+*.tmp
+
+# Raw Overpass extracts (80 MB): only scripts/prep.mjs reads them, to make data/roads.json, which is kept
+data/osm_raw.json
+data/osm_raw_south.json
+
+# Built by scripts/build-site.mjs (npm run build) from the editors' files
+site/data/

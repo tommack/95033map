@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subway Tools</title>
+<style>
+  :root {
+    --bg: #ffffff; --panel: #f7f7f5; --text: #1d1d1b; --muted: #6b6b66; --line: #dddcd6; --accent: #0b6bcb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #161615; --panel: #1f1f1d; --text: #ecebe6; --muted: #9c9b94; --line: #34332f; --accent: #5aa4f0; }
+  }
+  :root[data-theme="dark"] { --bg: #161615; --panel: #1f1f1d; --text: #ecebe6; --muted: #9c9b94; --line: #34332f; --accent: #5aa4f0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { display: flex; flex-direction: column; }
+  nav { display: flex; align-items: center; gap: 4px; padding: 0 12px; height: 40px; flex: none;
+    background: var(--panel); border-bottom: 1px solid var(--line); }
+  nav b { font-size: 13px; margin-right: 10px; white-space: nowrap; }
+  nav button { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 6px; cursor: pointer;
+    border: 1px solid transparent; background: none; color: var(--muted); white-space: nowrap; }
+  nav button:hover { color: var(--text); }
+  nav button.on { background: var(--bg); color: var(--text); border-color: var(--line); font-weight: 600; }
+  nav .keys { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  nav kbd { font: 11px ui-monospace, monospace; padding: 0 4px; border: 1px solid var(--line); border-radius: 3px; }
+  main { flex: 1; position: relative; min-height: 0; }
+  /* Inactive tabs stay laid out (Leaflet needs a size) but invisible. */
+  iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; visibility: hidden; background: var(--bg); }
+  iframe.on { visibility: visible; }
+  @media (max-width: 600px) { nav .keys { display: none; } nav b { display: none; } }
+</style>
+</head>
+<body>
+<nav>
+  <b>95033 Subway</b>
+  <button data-tab="nodes">Nodes</button>
+  <button data-tab="layout">Layout</button>
+  <button data-tab="preview">Preview</button>
+  <span class="keys"><kbd>`</kbd> flips between the last two tabs, keeping your place · <kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>3</kbd> picks one</span>
+</nav>
+<main id="main"></main>
+<script>
+(() => {
+  // Each tool runs in its own frame and keeps its state while hidden. Switching tabs asks the
+  // tab you're leaving where you are (window.subwayFocus.get(): lat/lon, meters per pixel,
+  // selected node) and shows the same place in the tab you're going to.
+  const TABS = {
+    nodes: { src: 'node-picker/', title: 'Nodes' },
+    layout: { src: 'layout-editor/', title: 'Layout' },
+    preview: { src: '../site/?live', title: 'Preview' },
+  };
+  const ORDER = Object.keys(TABS);
+  const frames = {};
+  let current = null, previous = null;
+
+  function frame(tab) {
+    if (frames[tab]) return frames[tab];
+    const f = document.createElement('iframe');
+    f.src = TABS[tab].src;
+    f.title = TABS[tab].title;
+    f.ready = new Promise(resolve => f.addEventListener('load', () => {
+      hookKeys(f.contentWindow);
+      // Tools finish booting asynchronously; wait until they expose their focus handle.
+      const t0 = Date.now();
+      (function wait() {
+        if (f.contentWindow.subwayFocus || Date.now() - t0 > 20000) resolve();
+        else setTimeout(wait, 100);
+      })();
+    }, { once: true }));
+    document.getElementById('main').appendChild(f);
+    return (frames[tab] = f);
+  }
+
+  async function show(tab, focus) {
+    if (!TABS[tab]) return;
+    if (tab === current) { if (focus) frames[tab].contentWindow.subwayFocus?.set(focus); return; }
+    let here = focus;
+    if (!here && current) { try { here = frames[current].contentWindow.subwayFocus?.get(); } catch {} }
+    if (current) previous = current;
+    current = tab;
+    const f = frame(tab);
+    for (const [k, el] of Object.entries(frames)) el.classList.toggle('on', k === tab);
+    document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+    history.replaceState(null, '', '#' + tab);
+    document.title = `${TABS[tab].title} · Subway Tools`;
+    await f.ready;
+    if (current !== tab) return;
+    f.contentWindow.focus();
+    if (here) { try { f.contentWindow.subwayFocus?.set(here); } catch (e) { console.warn(e); } }
+  }
+
+  function onKey(ev) {
+    const t = ev.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    if (ev.key === '`' && !ev.metaKey && !ev.ctrlKey) { ev.preventDefault(); show(previous || (current === 'layout' ? 'nodes' : 'layout')); }
+    else if (ev.altKey && /^Digit[1-3]$/.test(ev.code)) { ev.preventDefault(); show(ORDER[Number(ev.code.slice(5)) - 1]); }
+  }
+  function hookKeys(win) { try { win.addEventListener('keydown', onKey); } catch {} }
+  window.addEventListener('keydown', onKey);
+
+  document.querySelectorAll('nav button').forEach(b => b.onclick = () => show(b.dataset.tab));
+  // The layout editor's handle (loading its tab if need be), for tools that add things to the layout.
+  async function editor() {
+    const f = frame('layout');
+    await f.ready;
+    for (const t0 = Date.now(); Date.now() - t0 < 20000; await new Promise(r => setTimeout(r, 100))) {
+      try { if (f.contentWindow.layoutEditor) return f.contentWindow.layoutEditor; } catch {}
+    }
+    return null;
+  }
+  window.subwayShell = { show, editor };
+  const start = location.hash.slice(1);
+  show(TABS[start] ? start : 'layout');
+})();
+</script>
+</body>
+</html>

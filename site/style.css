@@ -1,0 +1,177 @@
+:root {
+  --bg: #fbfbf9;
+  --card: #ffffff;
+  --text: #1d1d1b;
+  --muted: #6b6b66;
+  --line: #e2e1db;
+  --accent: #0b6bcb;
+  --halo: #fbfbf9;
+  --node-fill: #ffffff;
+  --node-stroke: #1d1d1b;
+  --me: #1a73e8;
+  --shadow: 0 2px 10px rgba(0, 0, 0, .12), 0 0 0 1px rgba(0, 0, 0, .04);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121211; --card: #1f1f1d; --text: #ecebe6; --muted: #9c9b94; --line: #34332f; --accent: #5aa4f0;
+    --halo: #121211; --node-fill: #121211; --node-stroke: #ecebe6; --me: #4c9bff;
+    --shadow: 0 2px 12px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .06);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121211; --card: #1f1f1d; --text: #ecebe6; --muted: #9c9b94; --line: #34332f; --accent: #5aa4f0;
+  --halo: #121211; --node-fill: #121211; --node-stroke: #ecebe6; --me: #4c9bff;
+  --shadow: 0 2px 12px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .06);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+  font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent; }
+svg#map { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; user-select: none;
+  -webkit-user-select: none; cursor: grab; }
+svg#map.dragging { cursor: grabbing; }
+svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+#title { position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 16px; pointer-events: none;
+  background: color-mix(in srgb, var(--bg) 82%, transparent); padding: 6px 10px; border-radius: 10px; }
+#title h1 { margin: 0; font-size: 20px; line-height: 1.1; letter-spacing: -.01em; }
+#title p { margin: 0; font-size: 12px; color: var(--muted); }
+
+#morphCtl { position: fixed; top: calc(14px + env(safe-area-inset-top)); right: 16px; display: flex; align-items: center; gap: 6px;
+  background: var(--card); box-shadow: var(--shadow); border-radius: 12px; padding: 6px 10px; font-size: 12px; color: var(--muted); }
+#morphCtl input { width: 96px; margin: 0; accent-color: var(--accent); }
+#localCtl { position: fixed; top: calc(58px + env(safe-area-inset-top)); right: 16px; display: flex; align-items: center; gap: 6px;
+  background: var(--card); box-shadow: var(--shadow); border-radius: 12px; padding: 6px 10px; font-size: 12px; color: var(--muted); cursor: pointer; }
+#localCtl input { margin: 0; accent-color: var(--accent); }
+
+/* Road search: under the title, full width on a phone. */
+#search { position: fixed; top: calc(100px + env(safe-area-inset-top)); left: 16px; width: min(360px, calc(100vw - 32px));
+  display: flex; align-items: center; gap: 8px; background: var(--card); box-shadow: var(--shadow); border-radius: 12px;
+  padding: 0 12px; color: var(--muted); z-index: 5; }
+#search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text); font: 16px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 10px 0; outline: none; }
+#search input::-webkit-search-cancel-button { cursor: pointer; }
+#results { position: absolute; top: calc(100% + 6px); left: 0; right: 0; margin: 0; padding: 4px; list-style: none;
+  background: var(--card); box-shadow: var(--shadow); border-radius: 12px; max-height: min(60vh, 420px); overflow-y: auto; }
+#results li { padding: 8px 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+#results li.on, #results li:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+#results .chip { flex: none; width: 12px; height: 12px; border-radius: 3px; }
+#results .chip.ico { width: 16px; height: auto; font-size: 14px; line-height: 1; text-align: center; }
+#results .nm { color: var(--text); font-size: 15px; }
+#results .sub { color: var(--muted); font-size: 12px; }
+#results .empty { color: var(--muted); cursor: default; }
+#results .empty:hover { background: none; }
+/* On a wide screen, search sits at the top in the middle, between the title and the controls. */
+@media (min-width: 900px) {
+  #search { top: calc(14px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(420px, calc(100vw - 560px)); }
+}
+#controls { position: fixed; right: 16px; bottom: calc(28px + env(safe-area-inset-bottom)); display: flex; flex-direction: column;
+  gap: 10px; align-items: flex-end; transition: transform .2s; }
+body.has-card #controls { transform: translateY(calc(-1 * var(--card-h, 0px))); }
+.ctl { width: 44px; height: 44px; border-radius: 12px; border: 0; background: var(--card); color: var(--text);
+  box-shadow: var(--shadow); font: 22px/1 -apple-system, sans-serif; cursor: pointer; display: grid; place-items: center; padding: 0; }
+.ctl:hover { color: var(--accent); }
+.ctl.on { color: var(--me); }
+.ctl.busy svg { animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+.zoom { display: flex; flex-direction: column; border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+.zoom .ctl { box-shadow: none; border-radius: 0; }
+.zoom .ctl + .ctl { border-top: 1px solid var(--line); }
+@media (pointer: coarse) { .zoom { display: none; } }
+
+#card { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+  width: min(440px, calc(100% - 24px)); background: var(--card); border-radius: 16px; box-shadow: var(--shadow);
+  padding: 14px 16px 14px; }
+#cardClose { position: absolute; top: 6px; right: 8px; border: 0; background: none; color: var(--muted); font-size: 24px;
+  line-height: 1; padding: 4px 8px; cursor: pointer; }
+#cardBody .kicker { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+#cardBody h2 { margin: 0 32px 2px 0; font-size: 18px; line-height: 1.25; display: flex; align-items: center; gap: 8px; }
+#cardBody h2 .chip { width: 14px; height: 14px; border-radius: 4px; flex: none; }
+#cardBody .meta { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+#cardBody .roads { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 2px 0 10px; }
+#cardBody .road { font-size: 12px; padding: 1px 8px 1px 6px; border-radius: 10px; background: color-mix(in srgb, var(--muted) 14%, transparent);
+  display: inline-flex; align-items: center; gap: 5px; }
+#cardBody .road i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+/* Several roads highlighted: one chip each; the card shows the one in bold. */
+#cardBody .picks { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0 32px 10px 0; }
+#cardBody .pick { font-size: 12px; padding: 2px 2px 2px 9px; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center;
+  background: color-mix(in srgb, var(--muted) 14%, transparent); }
+#cardBody .pick.on { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--text); font-weight: 600; }
+#cardBody .pick button { border: 0; background: none; color: var(--muted); font-size: 15px; line-height: 1; padding: 0 6px; cursor: pointer; }
+/* Emoji to put on the map. */
+#cardBody .mark { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)) minmax(52px, 1.5fr); gap: 4px; margin-top: 4px; }
+#cardBody .markLabel { font-size: 12px; color: var(--muted); margin-top: 10px; }
+#cardBody h2 .pinEmo { font-size: 22px; line-height: 1; }
+#cardBody .removePin { margin-top: 8px; border: 0; background: none; color: #d93025; font: inherit; font-size: 13px; font-weight: 500; padding: 4px 0; cursor: pointer; }
+#cardBody .mark button { height: 34px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); font-size: 18px;
+  line-height: 1; padding: 0; cursor: pointer; }
+#cardBody .mark button:hover { border-color: var(--accent); }
+#cardBody .mark button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, transparent); }
+#cardBody .mark .other { width: 100%; min-width: 0; height: 34px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--text);
+  font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0 4px; text-align: center; }
+#cardBody .mark .other[data-on] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, transparent); }
+#cardBody .mark .other[data-on]::placeholder { color: var(--text); font-size: 18px; }
+#cardBody .addMore { margin-top: 8px; border: 0; background: none; color: var(--accent); font: inherit; font-size: 13px; font-weight: 500; padding: 4px 0; cursor: pointer; }
+#cardBody .addMore.on { font-weight: 600; }
+/* The emoji picker that opens where the road was tapped, with a point down to the spot. */
+#emojiPop { position: fixed; z-index: 30; width: 212px; background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: 8px 10px 10px; }
+#emojiPop::after { content: ''; position: absolute; left: var(--tail, 50%); width: 14px; height: 14px; background: var(--card); transform: translateX(-50%) rotate(45deg); }
+#emojiPop:not(.below)::after { bottom: -7px; box-shadow: 3px 3px 4px rgba(0,0,0,.08); }
+#emojiPop.below::after { top: -7px; }
+#emojiPop .markLabel { font-size: 12px; color: var(--muted); margin: 0 0 6px; }
+#emojiClose { position: absolute; top: 2px; right: 4px; border: 0; background: none; color: var(--muted); font-size: 20px; line-height: 1; padding: 4px 6px; cursor: pointer; }
+#emojiPop .mark { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+#emojiPop .mark button { height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font-size: 22px; line-height: 1; padding: 0; cursor: pointer; }
+#emojiPop .mark button:hover { border-color: var(--accent); }
+#emojiPop .mark .other { grid-column: 1 / -1; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text);
+  font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; }
+body.placing svg#map { cursor: crosshair; }
+body.placing #btnEmoji { color: #fff; background: var(--accent); }
+#cardBody .hint { font-size: 12px; color: var(--muted); margin-left: 8px; }
+svg text.emo { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions a, .actions button { flex: 1 1 0; min-width: 0; text-align: center; font: inherit; font-size: 14px; font-weight: 500; padding: 9px 8px;
+  border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); text-decoration: none; cursor: pointer; white-space: nowrap; }
+.actions a:hover, .actions button:hover { border-color: var(--accent); }
+.actions .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.directions { font-size: 13px; color: var(--muted); margin-top: 8px; }
+.directions a { color: var(--accent); text-decoration: none; }
+
+#toast { position: fixed; top: calc(16px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); background: rgba(17, 17, 17, .86);
+  color: #fff; padding: 7px 14px; border-radius: 18px; font-size: 14px; pointer-events: none; z-index: 10; max-width: calc(100vw - 32px); width: max-content; text-align: center; }
+#attrib { position: fixed; left: 12px; bottom: calc(6px + env(safe-area-inset-bottom)); font-size: 11px; color: var(--muted); }
+#attrib a { color: inherit; }
+body.has-card #attrib { display: none; }
+/* A neighborhood's own map: on a wide screen a panel over the main map, dimmed behind it; on a phone
+   the whole screen, with its name and the way back where the title was. */
+#backdrop { position: fixed; inset: 0; width: 100%; height: 100%; display: none; cursor: pointer; }
+#subBar, #subClose { display: none; }
+body.sub #title { display: none; }
+body.sub #subBar { display: flex; align-items: center; gap: 8px; position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 16px;
+  max-width: calc(100vw - 32px); background: color-mix(in srgb, var(--bg) 82%, transparent); padding: 4px 10px 4px 4px; border-radius: 10px; z-index: 4; }
+#subBar h1 { margin: 0; font-size: 18px; line-height: 1.15; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#subBar p { margin: 0; font-size: 12px; color: var(--muted); }
+#subBack { display: inline-flex; align-items: center; gap: 2px; border: 0; border-radius: 9px; background: var(--card); box-shadow: var(--shadow);
+  color: var(--accent); font: 600 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 8px 10px 8px 4px; cursor: pointer; flex: none; }
+#cardBody .openSub { display: block; width: 100%; margin: 0 0 10px; padding: 10px; border-radius: 10px; border: 0; background: var(--accent); color: #fff;
+  font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+#cardBody .openSub.back { background: var(--bg); color: var(--accent); border: 1px solid var(--line); }
+/* A phone: the way back above the name, so both fit beside the slider. */
+@media (max-width: 899px) {
+  body.sub #subBar { flex-direction: column; align-items: flex-start; gap: 4px; padding: 0 8px 4px 0; max-width: calc(100vw - 190px); min-width: 120px; }
+  body.sub #subBar > div { max-width: 100%; }
+  #subBar h1 { font-size: 17px; }
+  #subBack { padding: 6px 10px 6px 2px; font-size: 13px; }
+}
+@media (min-width: 900px) {
+  body.sub { --pw: min(1100px, calc(100vw - 48px)); --px: calc((100vw - var(--pw)) / 2); }
+  body.sub #backdrop { display: block; opacity: .3; }
+  body.sub svg#map { inset: auto; top: calc(72px + env(safe-area-inset-top)); left: var(--px); width: var(--pw); height: calc(100% - 96px - env(safe-area-inset-top));
+    background: var(--bg); border-radius: 16px; box-shadow: 0 12px 48px rgba(0, 0, 0, .28), 0 0 0 1px rgba(0, 0, 0, .06); }
+  body.sub #subClose { display: grid; position: fixed; top: calc(84px + env(safe-area-inset-top)); right: calc(var(--px) + 12px); font-size: 26px; z-index: 3; }
+  body.sub #controls { right: calc(var(--px) + 12px); bottom: calc(36px + env(safe-area-inset-bottom)); }
+  body.sub #card { bottom: calc(36px + env(safe-area-inset-bottom)); }
+  body.sub #attrib { display: none; }
+}
+#loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); color: var(--muted); padding: 24px; text-align: center; z-index: 20; }
+@media (min-width: 900px) { #toast { top: calc(70px + env(safe-area-inset-top)); } }   /* below the search */
