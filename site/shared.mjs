@@ -22,6 +22,17 @@ export const unit = (a, b) => { const L = dist(a, b) || 1; return [(b[0] - a[0])
 export const pathLen = (pts) => pts.reduce((a, q, i) => a + (i ? dist(pts[i - 1], q) : 0), 0);
 // Do two boxes ({ x0, y0, x1, y1 }) overlap, or a box and any in a list?
 export const overlaps = (b, list) => list.some((o) => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0);
+// Whether segment a–b passes through box (clipped against it, Liang–Barsky).
+export function segHitsBox(a, b, box) {
+  let t0 = 0, t1 = 1;
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  for (const [p, q] of [[-dx, a[0] - box.x0], [dx, box.x1 - a[0]], [-dy, a[1] - box.y0], [dy, box.y1 - a[1]]]) {
+    if (p === 0) { if (q < 0) return false; continue; }
+    const r = q / p;
+    if (p < 0) { if (r > t1) return false; if (r > t0) t0 = r; } else { if (r < t0) return false; if (r < t1) t1 = r; }
+  }
+  return true;
+}
 
 // ---------- lines ----------
 // Closest point to p on segment a–b: s is the fraction along it, d the distance.
@@ -69,7 +80,8 @@ export function chevronSvg(x, y, ux, uy, c, col) {
 // Text just past a line's end at tip, heading [dx, dy]: beside it for a line ending sideways, above or
 // below for one ending up or down. lines: strings or [text, extra tspan attributes]; tw: the widest
 // line's width. Returns '' (and places nothing) if it would overlap a box in placed.
-export function tipText(tip, [dx, dy], gap, lines, fs, tw, placed, attrs) {
+// blocked(box), if given, can rule out more than the labels already placed (lines it would cross).
+export function tipText(tip, [dx, dy], gap, lines, fs, tw, placed, attrs, blocked) {
   lines = lines.map((l) => (Array.isArray(l) ? l : [l, '']));
   const lh = fs * 1.2, th = lh * lines.length;
   let x = tip[0] + dx * gap, y = tip[1] + dy * gap, anchor = 'middle', box;
@@ -80,7 +92,7 @@ export function tipText(tip, [dx, dy], gap, lines, fs, tw, placed, attrs) {
     y += ((dy > 0 ? 1 : -1) * th) / 2;
     box = { x0: x - tw / 2, x1: x + tw / 2, y0: y - th / 2, y1: y + th / 2 };
   }
-  if (overlaps(box, placed)) return '';
+  if (overlaps(box, placed) || blocked?.(box)) return '';
   placed.push(box);
   const y0 = y - th / 2 + lh / 2;
   return `<text text-anchor="${anchor}" font-size="${fs}" ${attrs}>` +
@@ -105,6 +117,29 @@ export function placeSpot(pointAt, t, side) {
 export function placeBadge({ at, n }, lineW, k) {
   const off = (lineW / 2 + PLACE_GAP + PLACE_R) * k;
   return { r: PLACE_R * k, c: [at[0] + n[0] * off, at[1] + n[1] * off] };
+}
+
+// A badge that would cover something (blocked(c, r): another line, a junction, another badge) moves
+// along its line a few pixels at a time, either way, up to PLACE_SLIDE pixels; never to the other side
+// (that's where the place is). len: the line's drawn length. With nowhere clear, it stays where it was.
+export const PLACE_SLIDE = 48;
+export function placeFit(pointAt, t, side, lineW, k, len, blocked) {
+  const at = (t) => {
+    const spot = placeSpot(pointAt, t, side);
+    return { ...spot, ...placeBadge(spot, lineW, k) };
+  };
+  const first = at(t);
+  if (blocked(first.c, first.r)) {
+    const dt = (4 * k) / (len || 1);
+    for (let i = 1; i * 4 <= PLACE_SLIDE; i++) {
+      for (const tt of [t - i * dt, t + i * dt]) {
+        if (tt < 0 || tt > 1) continue;
+        const g = at(tt);
+        if (!blocked(g.c, g.r)) return g;
+      }
+    }
+  }
+  return first;
 }
 
 // ---------- side roads bunched together ----------

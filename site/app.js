@@ -16,8 +16,8 @@
 
 import { buildAll, shortName } from './build-map.mjs';
 import {
-  esc, dist, lerp, clamp, fmt, overlaps, segProject, anchorsAt, anchorsProject,
-  chevrons as chevronSize, chevronSvg, tipText, areaSvg, placeSpot, placeBadge, bunchSideRoads, bunchBranch,
+  esc, dist, lerp, clamp, fmt, pathLen, overlaps, segHitsBox, segProject, anchorsAt, anchorsProject,
+  chevrons as chevronSize, chevronSvg, tipText, areaSvg, placeFit, bunchSideRoads, bunchBranch,
   TIER_W, MINOR, BUNCH_PX, PLACE_R,
 } from './shared.mjs';
 
@@ -302,7 +302,7 @@ let coarse = false;
 let hideLocal = false;
 try { hideLocal = localStorage.getItem('hideLocal') === '1'; } catch {}
 const shownLod = (x) => !(coarse && x.lod) && !(hideLocal && x.local);
-const shownBase = (x) => shownLod(x) && !bunchHide.has(x);
+const shownBase = (x) => shownLod(x) && !bunchHide.has(x) && (stubShow.has(x) || !stubEdges().has(x));
 // A neighborhood's stand-in line (see standIns) shows when none of its real roads in do; the junction
 // it ends at shows with it.
 const shown = (x) => (x.virtual ? x.stands.every((s) => !shownBase(s)) && x.via.some(shownBase) : shownBase(x) || !!x.virt?.some(shown));
@@ -312,7 +312,20 @@ const shown = (x) => (x.virtual ? x.stands.every((s) => !shownBase(s)) && x.via.
 // their names at its end. The other junctions lose their circles. Tapping the
 // branch zooms in until they come apart.
 let bunches = [], bunchHide = new Set(), bunchPlain = new Set(), bunchSig = '';
-const plainNow = (n) => n.plain || bunchPlain.has(n);
+// Dead-end stubs are drawn only once their name has been placed (a short line with no name says
+// nothing), and the circle of a junction that's then just a bend is left off. The labels decide, once
+// the zoom settles: until then a stub that wasn't there stays off, so nothing flashes on and off again.
+let stubShow = new Set(), stubPlain = new Set(), stubGen = 0;
+const stubEdges = () => (M.stubEdges ??= new Set(M.nodes.filter((n) => n.kind === 'open' && n.edges.length).map((n) => n.edges[0])));
+const plainNow = (n) => n.plain || bunchPlain.has(n) || stubPlain.has(n);
+function updateStubPlain() {
+  stubPlain = new Set();
+  for (const e of stubEdges()) {
+    if (shownBase(e) || !shownLod(e) || bunchHide.has(e)) continue;
+    const j = e.A.kind === 'open' ? e.B : e.A;
+    if (!j.kind && realEdges(j).filter(shownBase).length === 2) stubPlain.add(j);
+  }
+}
 const realEdges = (n) => n.edges.filter((x) => !x.virtual);
 const otherEnd = (e, n) => (e.A === n ? e.B : e.A);
 // A line's points starting from node n.
@@ -369,9 +382,35 @@ const bunchSvg = (b, k) => bunchBranch([b.j.x, b.j.y], b.dir, k).svg;
 const PLACE_NAME_K = 8;   // meters per pixel: zoomed in past this, places get their names; zoomed out, just the icon
 // In light mode just the icon; in dark mode a gray circle behind it, which the icons need there.
 const DARK = matchMedia('(prefers-color-scheme: dark)');
+// Each badge where it was put, or slid along its line off the lines, junctions and other badges it would
+// cover (see placeFit). Worked out for all the places at once, again when the zoom or what's drawn changes.
+let placeFits = null;
 function placeGeom(q, k) {
-  const spot = placeSpot((t) => schemAt(q.e, t), q.t, q.side);
-  return { ...spot, ...placeBadge(spot, lineWidth(q.e), k) };
+  const key = [k, morph, hideLocal, bunchSig, stubGen].join();
+  if (placeFits?.M !== M || placeFits.key !== key) placeFits = { M, key, at: fitPlaces(k) };
+  return placeFits.at.get(q) || fitPlaces(k, [q]).get(q);
+}
+function fitPlaces(k, list = M.places.filter(placeShown)) {
+  const lines = M.edges.filter((e) => shown(e) && !e.virtual).map((e) => {
+    const pts = anchorPts(e), xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    return { e, pts, w: lineWidth(e) * k / 2, box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] };
+  });
+  const dots = M.nodes.filter((n) => (!n.kind || n.kind === 'closed' || n.kind === 'area') && n.edges.length && shown(n) && !plainNow(n))
+    .map((n) => ({ c: [n.x, n.y], r: n.kind === 'area' ? areaR(n, k) : 6.5 * k }));
+  const out = new Map(), badges = [], pad = 2 * k;
+  const blocked = (c, r) => badges.some((b) => dist(c, b.c) < r + b.r + pad) || dots.some((d) => dist(c, d.c) < r + d.r + pad) ||
+    lines.some(({ pts, w, box }) => {
+      const m = r + w + pad;
+      if (c[0] < box[0] - m || c[0] > box[2] + m || c[1] < box[1] - m || c[1] > box[3] + m) return false;
+      for (let i = 1; i < pts.length; i++) if (segProject(pts[i - 1], pts[i], c).d < m) return true;
+      return false;
+    });
+  for (const q of list) {
+    const g = placeFit((t) => schemAt(q.e, t), q.t, q.side, lineWidth(q.e), k, pathLen(anchorPts(q.e)), blocked);
+    out.set(q, g);
+    badges.push(g);
+  }
+  return out;
 }
 const placeShown = (q) => shown(q.e);
 function placeSvg(q, k) {
@@ -424,6 +463,7 @@ function draw() {
     let lines = c !== coarse;
     coarse = c;
     if ((k !== drawn.k || lines) && updateBunches(k)) lines = true;
+    if (k !== drawn.k || lines) updateStubPlain();
     if (lines) drawLines();
     if (k !== drawn.k || lines) {
       drawn.k = k;
@@ -644,6 +684,26 @@ function drawLabels(k) {
     if (lines.length) out += tipLabel({ x, y, kind: 'branch', dir: b.dir }, lines, 11, 400, k, placed, `fill="var(--muted)" ${halo(3)}`);
   }
 
+  // Dead-end stubs: the road's name, small, past the tip; with no room for it, no stub. Before the names
+  // along the lines, which move about as you zoom, so that a stub, once there, stays as you zoom in.
+  // A stub that's the end of a road named along its own line is named there instead (below).
+  const show = new Set(), drawable = (x) => shownLod(x) && !bunchHide.has(x), fullStubs = [];
+  // ...and not across another line.
+  const lineBoxes = M.edges.filter((x) => drawable(x) && !x.virtual).map((x) => {
+    const pts = anchorPts(x), xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
+    return { e: x, pts, box: { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) } };
+  });
+  const acrossLine = (own) => (box) => lineBoxes.some(({ e, pts, box: b }) => e !== own && (show.has(e) || !stubEdges().has(e)) && overlaps(box, [b]) &&
+    pts.some((q, i) => i && segHitsBox(pts[i - 1], q, box)));
+  for (const n of M.nodes) {
+    if (n.kind !== 'open' || !n.edges.length) continue;
+    const e = n.edges[0];
+    if (!drawable(e)) continue;
+    if (e.full) { fullStubs.push(n); continue; }
+    const label = isPlaceholder(e.road) ? '' : tipLabel(n, [roadText(e.road)], 10, 400, k, placed, `font-style="italic" fill="var(--muted)" ${halo(2.5)}`, acrossLine(e));
+    if (label) { out += label; show.add(e); }
+  }
+
   // Straight runs: collinear segments of one road joined through junctions. Not while the map
   // is morphing toward geography: roads are curvy there and the names would jump about.
   const segs = [];
@@ -727,21 +787,25 @@ function drawLabels(k) {
     out += `<text x="${fmt(tx)}" y="${fmt(ty)}" dy="0.35em" text-anchor="${anchor}" font-size="${fs}" font-weight="600" fill="var(--text)" ${halo(3)}>${esc(name)}</text>`;
   }
 
-  // Open-ended stubs: the road's name, small, past the tip.
-  for (const n of M.nodes) {
-    if (n.kind !== 'open' || !n.edges.length) continue;
+  for (const n of fullStubs) {
     const e = n.edges[0];
-    if (isPlaceholder(e.road) || !shown(e)) continue;
-    if (e.full && byName.has(e.road)) continue;   // part of its road's line, already named along it
-    out += tipLabel(n, [roadText(e.road)], 10, 400, k, placed, `font-style="italic" fill="var(--muted)" ${halo(2.5)}`);
+    // Part of its road's line, already named along it; or named at its tip.
+    const label = byName.has(e.road) || isPlaceholder(e.road) ? '' : tipLabel(n, [roadText(e.road)], 10, 400, k, placed, `font-style="italic" fill="var(--muted)" ${halo(2.5)}`, acrossLine(e));
+    if (label) out += label;
+    if (label || byName.has(e.road)) show.add(e);
   }
   $('gLabels').innerHTML = out;
+  if (show.size !== stubShow.size || [...show].some((e) => !stubShow.has(e))) {
+    stubShow = show; stubGen++;
+    updateStubPlain();
+    drawLines(); drawNodes(k);
+  }
 }
 
-function tipLabel(n, lines, px, weight, k, placed, attrs) {
+function tipLabel(n, lines, px, weight, k, placed, attrs, blocked) {
   const tw = Math.max(...lines.map((l) => textWidth(Array.isArray(l) ? l[0] : l, px, weight))) * k;
   const gap = n.kind === 'through' || n.kind === 'exit' ? chevrons(n.edges[0], k).extent + 5 * k : (n.kind === 'branch' ? 9 : 5) * k;
-  return tipText([n.x, n.y], n.dir || tipDir(n), gap, lines, px * k, tw, placed, attrs);
+  return tipText([n.x, n.y], n.dir || tipDir(n), gap, lines, px * k, tw, placed, attrs, blocked);
 }
 
 // ---------- selection card ----------
@@ -1783,5 +1847,5 @@ if (LIVE && 'BroadcastChannel' in window) {
   if (new URLSearchParams(location.hash.slice(1)).has('a')) fitTo(M.bounds);
   if (!openHash()) fitTo(M.bounds);
   window.subwayFocus = focusApi;   // the tools shell waits for this
-  window.subwayMap = { get M() { return M; }, locate, select, get view() { return view; } };
+  window.subwayMap = { get M() { return M; }, locate, select, get view() { return view; }, get hidden() { return { stubs: new Set([...stubEdges()].filter((e) => !stubShow.has(e))), bunched: bunchHide }; } };
 })();

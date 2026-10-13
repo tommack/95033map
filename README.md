@@ -336,8 +336,13 @@ The address bar always holds the link to what's on the map, so it can be copied 
   map, Esc or the card's × clears the highlights.
 - **Places:** shops, schools and the like are drawn as a small icon beside their road, on the side the
   place is (on a gray circle in dark mode), with the name next to it where there's room once zoomed in;
-  zoomed out, just the icon. Tap one for its card (type, name, the road it's
+  zoomed out, just the icon. An icon that would sit on another line, a junction or another icon
+  slides along its road (never across it) until it's clear. Tap one for its card (type, name, the road it's
   on, and Google or Apple Maps). Search finds them too, including ones on a neighborhood's own map.
+- **Dead-end stubs** are drawn only where their name fits at their tip without covering another label
+  or crossing a line; otherwise the short line is left off until you zoom in far enough (and so is
+  the circle of a junction that's then just a bend). Their names are placed before the names along
+  the lines, so a stub, once there, mostly stays as you zoom in.
 - **With a mouse**, the pointer turns into a hand over anything that can be clicked, and places, emoji,
   bunched side roads, neighborhoods and the map's edges get a tooltip with their name.
 - **Emoji:** the pin button (above the location button) puts an emoji on the map: tap it, tap the road

@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  segProject, anchorsAt, anchorsProject, chevrons, tipText, placeSpot, placeBadge, bunchSideRoads, PLACE_R, PLACE_GAP,
+  segProject, segHitsBox, anchorsAt, anchorsProject, chevrons, tipText, placeSpot, placeBadge, bunchSideRoads, PLACE_R, PLACE_GAP,
 } from '../site/shared.mjs';
 
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`);
@@ -39,6 +39,16 @@ test('tipText places a label beside or past a line end, unless it would overlap'
   assert.equal(placed.length, 1);
   assert.equal(tipText([0, 0], [1, 0], 5, ['Again'], 10, 50, placed, ''), '', 'overlaps the first');
   assert.match(tipText([0, 100], [0, -1], 5, ['Up'], 10, 20, placed, ''), /text-anchor="middle"/);
+});
+
+test('segHitsBox: through, beside, ending inside, and a blocked tipText', () => {
+  const box = { x0: 0, y0: 0, x1: 10, y1: 10 };
+  assert.ok(segHitsBox([-5, 5], [15, 5], box), 'straight through');
+  assert.ok(segHitsBox([5, 5], [50, 50], box), 'starts inside');
+  assert.ok(!segHitsBox([-5, -1], [15, -1], box), 'passes above');
+  assert.ok(!segHitsBox([12, 0], [20, 10], box), 'off to the side');
+  assert.ok(segHitsBox([-5, 15], [15, -5], box), 'diagonal across a corner');
+  assert.equal(tipText([0, 0], [1, 0], 5, ['Pierce Rd'], 10, 50, [], '', (b) => segHitsBox([30, -20], [30, 20], b)), '', 'crosses a line');
 });
 
 test('escapes text in labels', () => {
