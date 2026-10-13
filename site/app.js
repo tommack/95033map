@@ -366,18 +366,21 @@ const bunchSvg = (b, k) => bunchBranch([b.j.x, b.j.y], b.dir, k).svg;
 
 // Places (shops, schools…): a badge with an icon beside the road, on the side the place is, joined to
 // it by a tick, with the name past it. Left off with their road.
-const PLACE_NAME_K = 8;   // meters per pixel: zoomed in past this, places are labeled with their names
+const PLACE_NAME_K = 8;   // meters per pixel: zoomed in past this, places get their names; zoomed out, just the icon
+// In light mode just the icon; in dark mode a gray circle behind it, which the icons need there.
+const DARK = matchMedia('(prefers-color-scheme: dark)');
 function placeGeom(q, k) {
   const spot = placeSpot((t) => schemAt(q.e, t), q.t, q.side);
   return { ...spot, ...placeBadge(spot, lineWidth(q.e), k) };
 }
 const placeShown = (q) => shown(q.e);
 function placeSvg(q, k) {
-  const { at, n, r, c: [x, y] } = placeGeom(q, k);
-  return `<path d="M${fmt(at[0])} ${fmt(at[1])}L${fmt(x - n[0] * r)} ${fmt(y - n[1] * r)}" stroke="var(--node-stroke)" stroke-width="${1.5 * k}"/>` +
-    `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${r}" fill="var(--node-fill)" stroke="var(--node-stroke)" stroke-width="${1.6 * k}"/>` +
-    `<text x="${fmt(x)}" y="${fmt(y)}" dy="0.35em" text-anchor="middle" font-size="${11 * k}">${esc(q.icon)}</text>`;
+  const { at, n, r, c: [x, y] } = placeGeom(q, k), bare = !DARK.matches, end = bare ? r * 0.75 : r;
+  return `<path d="M${fmt(at[0])} ${fmt(at[1])}L${fmt(x - n[0] * end)} ${fmt(y - n[1] * end)}" stroke="var(--muted)" stroke-width="${1.5 * k}"/>` +
+    (bare ? '' : `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${r}" fill="var(--poi-fill)"/>`) +
+    `<text x="${fmt(x)}" y="${fmt(y)}" dy="0.35em" text-anchor="middle" font-size="${(bare ? 14 : 11) * k}">${esc(q.icon)}</text>`;
 }
+DARK.addEventListener('change', () => { if (M) { drawn.k = null; draw(); } });
 
 const PRIVATE = '#d93025';
 function drawLines() {
@@ -709,10 +712,11 @@ function drawLabels(k) {
       `${c.major ? ' font-weight="600"' : ''} fill="${c.major ? c.e.style.color : 'var(--muted)'}" ${halo(3)}>${esc(text)}</text>`;
   }
 
-  // Places: the name past the badge, away from the road, if there's room. Zoomed out, just what
-  // kind of place it is ("Fire station"): some names are very long.
+  // Places: the name past the badge, away from the road, if there's room. Zoomed out, no label: the
+  // icon says what kind of place it is, and some names are very long.
   for (const { q, n, r, c: [x, y] } of shownPlaces) {
-    const name = k < PLACE_NAME_K || !q.type ? q.name : q.type;
+    if (k >= PLACE_NAME_K) break;
+    const name = q.name;
     const fs = 10.5 * k, tw = textWidth(name, 10.5, 600) * k, gap = r + 4 * k, side = Math.abs(n[0]) >= 0.5;
     const tx = side ? x + Math.sign(n[0]) * gap : x, ty = side ? y : y + Math.sign(n[1] || 1) * (gap + fs * 0.5);
     const anchor = side ? (n[0] > 0 ? 'start' : 'end') : 'middle';
@@ -1251,6 +1255,7 @@ function endPointer(ev) {
   if (!ptrs.has(ev.pointerId)) return;
   ptrs.delete(ev.pointerId);
   svg.classList.remove('dragging');
+  scheduleHover(ev);
   if (gesture?.kind === 'pan' && !gesture.moved && ptrs.size === 0 && ev.type === 'pointerup' && performance.now() - gesture.t0 < 600) tap(ev);
   if (ptrs.size === 1) {
     const [p] = [...ptrs.values()];
@@ -1263,6 +1268,7 @@ svg.addEventListener('wheel', (ev) => {
   ev.preventDefault();
   const r = svg.getBoundingClientRect();
   zoomAt(Math.exp(ev.deltaY * (ev.ctrlKey ? 0.01 : 0.0015)), ev.clientX - r.left, ev.clientY - r.top);
+  scheduleHover(ev);
 }, { passive: false });
 
 function tap(ev) {
@@ -1277,37 +1283,91 @@ function tap(ev) {
   const p = toMap(cx, cy), k = upp(), tol = (ev.pointerType === 'touch' ? 22 : 12) * k;
   const add = ev.shiftKey || adding;
   if (sel?.type === 'place') return placeAt(p, tol);
-  // An emoji: its card (the topmost, if they overlap).
-  const pin = [...pins].reverse().find((q) => dist(p, pinAt(q, k)) < 16 * k);
-  if (pin) return select({ type: 'pin', pin }, { reveal: false });
-  if (me?.loc && !me.loc.far && dist(p, me.loc.at) < tol) return select({ type: 'me' }, { reveal: false });
-  // A place: its card.
-  const poi = M.places.filter(placeShown).map((q) => ({ q, d: dist(p, placeGeom(q, k).c) })).filter((x) => x.d < Math.max(tol, (PLACE_R + 3) * k)).sort((a, b) => a.d - b.d)[0];
-  if (poi) return select({ type: 'poi', q: poi.q }, { reveal: false });
-  // Side roads bunched together: zoom in on them until they come apart.
-  for (const b of bunches) {
-    if (segProject([b.j.x, b.j.y], bunchTip(b, k), p).d > tol) continue;
-    const c = [(b.bounds[0] + b.bounds[2]) / 2, (b.bounds[1] + b.bounds[3]) / 2], [W, H] = size();
+  const h = hitAt(p, k, tol);
+  if (h?.type === 'pin') return select({ type: 'pin', pin: h.pin }, { reveal: false });
+  if (h?.type === 'me') return select({ type: 'me' }, { reveal: false });
+  if (h?.type === 'poi') return select({ type: 'poi', q: h.q }, { reveal: false });
+  if (h?.type === 'bunch') {
+    // Side roads bunched together: zoom in on them until they come apart.
+    const { b } = h, c = [(b.bounds[0] + b.bounds[2]) / 2, (b.bounds[1] + b.bounds[3]) / 2], [W, H] = size();
     view.x = c[0] - W / 2 * k; view.y = c[1] - H / 2 * k;
     return zoomAt(Math.min(0.6, b.gap / (BUNCH_PX * 1.5 * k)), W / 2, H / 2);
   }
+  if (h?.type === 'node') return select({ type: 'node', n: h.n }, { reveal: false, add });
+  if (h?.type === 'edge') return pickRun(runOf(h.e), h.e, h.t, add);
+  if (!add && sel?.type !== 'me') select(null);
+}
+// What's at map point p (k: map units per pixel, tol: how near counts), topmost first: an emoji, your
+// location, a place, a bunch of side roads, a junction or neighborhood, a line. Taps and the tooltip.
+function hitAt(p, k, tol) {
+  const pin = [...pins].reverse().find((q) => dist(p, pinAt(q, k)) < 16 * k);
+  if (pin) return { type: 'pin', pin };
+  if (me?.loc && !me.loc.far && dist(p, me.loc.at) < tol) return { type: 'me' };
+  const poi = M.places.filter(placeShown).map((q) => ({ q, d: dist(p, placeGeom(q, k).c) })).filter((x) => x.d < Math.max(tol, (PLACE_R + 3) * k)).sort((a, b) => a.d - b.d)[0];
+  if (poi) return { type: 'poi', q: poi.q };
+  const b = bunches.find((b) => segProject([b.j.x, b.j.y], bunchTip(b, k), p).d <= tol);
+  if (b) return { type: 'bunch', b };
   let node = null;
   for (const n of M.nodes) {
     if (n.kind === 'open' || !n.edges.length || !shown(n) || plainNow(n)) continue;
     const d = dist(p, [n.x, n.y]);
     if (d < (n.kind === 'area' ? Math.max(tol * 0.8, areaR(n, k)) : tol * 0.8) && (!node || d < node.d)) node = { n, d };
   }
-  if (node) return select({ type: 'node', n: node.n }, { reveal: false, add });
+  if (node) return { type: 'node', n: node.n };
   let best = null;
   for (const e of M.edges) {
     if (!shown(e)) continue;
     const pr = schemProject(e, p);
     if (pr.d < tol && (!best || pr.d < best.d)) best = { e, ...pr };
   }
-  if (best?.e.virtual) return select({ type: 'node', n: best.e.area }, { reveal: false, add });
-  if (best) return pickRun(runOf(best.e), best.e, best.t, add);
-  if (!add && sel?.type !== 'me') select(null);
+  if (best?.e.virtual) return { type: 'node', n: best.e.area };
+  return best ? { type: 'edge', e: best.e, t: best.t } : null;
 }
+
+// With a mouse: a pointing hand where a click does something, and for what isn't named on the map
+// (places zoomed out, emoji, bunched side roads…) a tooltip.
+// Phones have the card only.
+let hoverEv = null, hoverRaf = 0;
+function tipFor(h) {
+  if (h.type === 'pin') return [`${h.pin.emoji} ${emojiName(h.pin.emoji) || 'Marked spot'}`];
+  if (h.type === 'me') return ['Your location'];
+  if (h.type === 'poi') return [`${h.q.icon} ${h.q.name}`, h.q.type];
+  if (h.type === 'bunch') {
+    const names = [...new Set(h.b.names || [])];
+    return [`${Math.max(names.length, h.b.leaves.length)} side roads`, names.length ? names.slice(0, 3).join(', ') + (names.length > 3 ? '…' : '') : 'Click to zoom in'];
+  }
+  if (h.type === 'node') {
+    const n = h.n;
+    if (n.kind === 'area') return [n.label, n.sub ? 'Neighborhood · click to open its map' : 'Neighborhood'];
+    if (n.kind === 'closed') return [n.label || 'Road closed', 'Road closed'];
+    if (n.kind) return [pickName({ n }), n.kind === 'branch' ? 'Side roads' : 'Edge of the map'];
+  }
+  return null;   // roads and junctions: their names are on the map, the hand says they can be clicked
+}
+function hover() {
+  hoverRaf = 0;
+  const ev = hoverEv, tip = $('tip');
+  const h = ev && M && !ptrs.size && sel?.type !== 'place' ? (() => {
+    const r = svg.getBoundingClientRect(), k = upp();
+    return hitAt(toMap(ev.clientX - r.left, ev.clientY - r.top), k, 10 * k);
+  })() : null;
+  svg.classList.toggle('hot', !!h);
+  const t = h && tipFor(h);
+  if (!t) { tip.hidden = true; return; }
+  const [title, sub] = t;
+  tip.innerHTML = `<b>${esc(title)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}`;
+  tip.hidden = false;
+  const w = tip.offsetWidth, ht = tip.offsetHeight;
+  const x = ev.clientX + 14 + w > innerWidth - 8 ? ev.clientX - 10 - w : ev.clientX + 14;
+  const y = ev.clientY + 20 + ht > innerHeight - 8 ? ev.clientY - 12 - ht : ev.clientY + 20;
+  tip.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+}
+function scheduleHover(ev) {
+  if (ev) hoverEv = ev.pointerType === 'mouse' || ev.type === 'wheel' ? ev : null;
+  if (!hoverRaf) hoverRaf = requestAnimationFrame(hover);
+}
+svg.addEventListener('pointermove', scheduleHover);
+svg.addEventListener('pointerleave', () => { hoverEv = null; scheduleHover(); });
 // A line and the lines it runs on into, through junctions that aren't drawn at this zoom (zoomed
 // out, or with local roads hidden): what looks like one stretch of road is selected as one.
 function runOf(e) {

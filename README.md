@@ -335,8 +335,11 @@ The address bar always holds the link to what's on the map, so it can be copied 
   several roads, the card has a chip for each: tap to show it, × to take it out. Tapping the empty
   map, Esc or the card's × clears the highlights.
 - **Places:** shops, schools and the like are drawn as a small icon beside their road, on the side the
-  place is, with the name next to it where there's room. Tap one for its card (type, name, the road it's
+  place is (on a gray circle in dark mode), with the name next to it where there's room once zoomed in;
+  zoomed out, just the icon. Tap one for its card (type, name, the road it's
   on, and Google or Apple Maps). Search finds them too, including ones on a neighborhood's own map.
+- **With a mouse**, the pointer turns into a hand over anything that can be clicked, and places, emoji,
+  bunched side roads, neighborhoods and the map's edges get a tooltip with their name.
 - **Emoji:** the pin button (above the location button) puts an emoji on the map: tap it, tap the road
   where it goes, and pick one in the popup that opens right there (tree down, crash, road closed, power
   line down, flooding, rocks or slide, fire, hazard, or any emoji typed into *Other*). Tapping another
