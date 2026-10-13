@@ -352,26 +352,32 @@ them: a road into a neighborhood has the same name on both, and a name is only r
 edge disappears after a graph change, its old links still work: they open the closest spot
 on whatever road is there now.
 
-Preview it in the tools' *Preview* tab (built live from the editors' files), or build and
-deploy it:
+Preview it in the tools' *Preview* tab (built live from the editors' files).
 
-```sh
-node scripts/build-site.mjs    # writes site/data/map.json (and site/data/areas/*.json), updates data/slugs.json
-npx wrangler deploy            # Cloudflare (static-assets Worker, see wrangler.jsonc)
-```
+### Publishing
 
-`npm run deploy` does both. The first `wrangler deploy` asks you to log in to Cloudflare and
-gives the map a `*.workers.dev` address; add your own domain in the Cloudflare dashboard.
-Location needs HTTPS, which `workers.dev` and custom domains have.
+Every push to `main` goes live: Cloudflare's Workers Builds watches the repo, runs
+`npm run build -- --strict` and then `npx wrangler deploy`. So the publishing routine is:
+
+1. Edit in the tools (`npm run dev`), as now.
+2. `npm run build` and `npm test`. The build updates `data/slugs.json`, which keeps old links working,
+   and it has to be committed along with the edits that changed it.
+3. Commit and push to `main`.
+
+Pushes to other branches get a preview build on their own `*.workers.dev` address instead. To deploy
+by hand without git, `npm run deploy` still builds and runs `npx wrangler deploy` (it asks you to log
+in to Cloudflare the first time). Location needs HTTPS, which `workers.dev` and custom domains have.
+
+Setting up Workers Builds (once, in the Cloudflare dashboard): Workers & Pages → `subway-95033` →
+Settings → Builds → Connect, pick the GitHub repo, branch `main`, build command
+`npm run build -- --strict`, deploy command `npx wrangler deploy`. Node comes from `.node-version`.
 
 ## GitHub Actions
 
-- **Check** (every push and pull request): lint and tests. The tests build the public map from the
-  committed data, so it fails on any warning (such as a neighborhood map that's out of date), and check
-  `data/slugs.json` is committed up to date (`npm run build` updates it; it's what keeps old links working).
-- **Deploy** (run by hand from the Actions tab): builds and deploys to Cloudflare. Needs the repository
-  secrets `CLOUDFLARE_API_TOKEN` (a token from the "Edit Cloudflare Workers" template) and
-  `CLOUDFLARE_ACCOUNT_ID`.
+**Check** (every push and pull request): lint and tests. The tests build the public map from the
+committed data, so it fails on any warning (such as a neighborhood map that's out of date), and check
+`data/slugs.json` is committed up to date. It doesn't block a deploy, since Cloudflare deploys from the
+push itself, but a strict build with warnings fails on Cloudflare's side and the old site stays up.
 
 ## License
 
