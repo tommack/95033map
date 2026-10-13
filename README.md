@@ -59,8 +59,7 @@ open http://localhost:8765/tools/
 `tools/` shows the node picker, the layout editor and a preview of the public map as tabs.
 Switching tabs keeps your place: the same spot (and the selected junction) is shown in the
 tab you switch to. <kbd>`</kbd> flips between the last two tabs, <kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>3</kbd>
-picks one. In the tools, scrolling down zooms in (a trackpad pinch works as usual; the public map keeps the
-usual direction). When the picker saves, the layout editor and preview reload the graph by
+picks one. All three zoom the same way with the scroll wheel, the usual way round for maps. When the picker saves, the layout editor and preview reload the graph by
 themselves. Each tool also works on its own (`tools/node-picker/`, `tools/layout-editor/`).
 
 ## Node picker

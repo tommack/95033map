@@ -2751,8 +2751,8 @@ function removeBend(e, j) {
 svg.addEventListener('wheel', (ev) => {
   ev.preventDefault();
   const p = toSvg(ev);
-  // Scrolling down zooms in (reversed from the usual maps); a trackpad pinch (ctrlKey) zooms as it looks.
-  const f = Math.exp(ev.ctrlKey ? ev.deltaY * 0.01 : -ev.deltaY * 0.0015);
+  // The same way round as the public map and the node picker; a trackpad pinch (ctrlKey) zooms faster.
+  const f = Math.exp(ev.deltaY * (ev.ctrlKey ? 0.01 : 0.0015));
   const w = Math.max(50, Math.min(view.w * f, 500000));
   const s = w / view.w;
   view.x = p[0] - (p[0] - view.x) * s;

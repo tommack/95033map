@@ -44,16 +44,6 @@ let stationInfo = new Map(); // node key -> [{ corr, s, auto, access, manual }]
 let ready = false;
 
 // ---------- map ----------
-// Scrolling down zooms in, as in the layout editor: Leaflet can't reverse the wheel, so wheel
-// events are flipped on their way to it. A trackpad pinch (ctrlKey) is left alone.
-document.getElementById('map').addEventListener('wheel', (ev) => {
-  if (ev.ctrlKey || ev.flipped) return;
-  ev.stopPropagation(); ev.preventDefault();
-  const e2 = new WheelEvent('wheel', { deltaX: ev.deltaX, deltaY: -ev.deltaY, deltaMode: ev.deltaMode, clientX: ev.clientX, clientY: ev.clientY,
-    screenX: ev.screenX, screenY: ev.screenY, shiftKey: ev.shiftKey, altKey: ev.altKey, metaKey: ev.metaKey, bubbles: true, cancelable: true });
-  e2.flipped = true;
-  ev.target.dispatchEvent(e2);
-}, { capture: true, passive: false });
 const map = L.map('map', { preferCanvas: true, zoomControl: true });
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19, className: 'basemap',
