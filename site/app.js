@@ -1545,8 +1545,19 @@ $('cardClose').onclick = () => {
 };
 $('btnEmoji').onclick = startPlacing;
 $('btnShare').onclick = share;
+// About this map: the (i) by the OpenStreetMap credit. Closes on ×, Escape or a tap anywhere else.
+function showInfo(on) {
+  $('info').hidden = !on;
+  $('btnInfo').setAttribute('aria-expanded', on);
+}
+$('btnInfo').onclick = () => showInfo($('info').hidden);
+$('infoClose').onclick = () => showInfo(false);
+document.addEventListener('pointerdown', (ev) => {
+  if (!$('info').hidden && !ev.target.closest('#info, #btnInfo')) showInfo(false);
+});
 window.addEventListener('keydown', (ev) => {
   if (ev.key !== 'Escape' || ev.target.matches?.('input')) return;
+  if (!$('info').hidden) return showInfo(false);
   if (adding) { adding = false; showCard(); } else if (sel || !sub) $('cardClose').onclick(); else leaveSub();
 });
 window.addEventListener('resize', () => { drawn.k = null; draw(); });
