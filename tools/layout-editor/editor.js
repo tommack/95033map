@@ -1,5 +1,5 @@
 import {
-  esc, lerp, dist, fmt, overlaps, segProject, anchorsAt, anchorsProject,
+  esc, lerp, dist, fmt, pathLen, overlaps, segProject, anchorsAt, anchorsProject,
   chevrons as chevronSize, chevronSvg, tipText, areaSvg, placeSpot, placeBadge, bunchSideRoads, bunchBranch,
   TIER_W, MINOR as MINOR_COLOR, BUNCH_PX,
 } from '../../site/shared.mjs';
@@ -38,7 +38,7 @@ let derived, G, proj, unproj;
 let pos = new Map(), bends = new Map();
 let orphans = { nodes: {}, bends: {} };   // saved entries for nodes/edges no longer in the graph
 let groups = [], groupsKey = '[]';   // collapsed parts of the graph, see applyGroups
-let settings = { guard: true, grid: 100, snap: true, labelMode: 'roads', offAngle: false, angleStep: 45, ghost: false, evenness: 0.75, deadEnds: 25 };
+let settings = { guard: true, grid: 100, snap: true, stubSnap: true, stubMarks: false, labelMode: 'roads', offAngle: false, angleStep: 45, ghost: false, evenness: 0.75, deadEnds: 25 };
 // Per road name: { major, color }. Defaults are filled in (and frozen) on load so a
 // road's color doesn't shift when another road is promoted or demoted.
 let roadPrefs = {};
@@ -324,7 +324,13 @@ const handTier = (road) => tierNum(roadPrefs[road]?.tier);
 const stretchTier = (e) => tierNum(stretchTiers[e.key]);
 // A line's tier set by hand: for its stretch, or else for its road.
 const edgeHand = (e) => stretchTier(e) || handTier(e.road);
-const edgeTier = (e) => { if (stretchTier(e)) return stretchTier(e); const t = roadStyle(e).tier; return t === CONNECTOR && e.deadEnd && !roadStyle(e).byHand ? DEAD_END : t; };
+const edgeTier = (e) => { if (e.tip === 'branch') return branchTier(e); if (stretchTier(e)) return stretchTier(e); const t = roadStyle(e).tier; return t === CONNECTOR && e.deadEnd && !roadStyle(e).byHand ? DEAD_END : t; };
+// A collapsed branch is drawn like the most important road folded into it: dotted if they're all
+// local roads. Everything on a branch is a dead end, so a connector there counts as a local road.
+function branchTier(e) {
+  const tier = (x) => { if (stretchTier(x)) return stretchTier(x); const st = roadStyle(x); return st.tier === CONNECTOR && !st.byHand ? DEAD_END : st.tier; };
+  return Math.min(tier(e), ...G.hidden.filter((h) => h.group === e.group).map((h) => tier(h.e)));
+}
 
 function computeRoadStyles() {
   roadStyles = new Map();
@@ -1038,6 +1044,37 @@ function stubLength() {
   return Math.max((lens[lens.length >> 1] || 500) * 0.4, settings.grid * 2);
 }
 
+// A thin stub (a local road ending at a junction that isn't picked) and its drawn length, junction to tip.
+// Branches you collapsed by hand count too: they're drawn like stubs.
+const thinStub = (e) => (isStub(e) && !fullStub(e) && !e.tip) || e.tip === 'branch';
+const stubTip = (e) => (e.tip ? (G.nodes.get(e.b).tip ? e.b : e.a) : stubEnd(e));
+const stubLen = (e) => pathLen(anchors(e).map(xy));
+// The lengths a stub snaps to: the standard one, half and twice it. Off all of them by more than
+// STUB_SLACK: marked by "Show stub lengths".
+const STUB_MULTS = [0.5, 1, 2], STUB_SLACK = 0.15;
+const stubTargets = () => { const L = stubLength(); return STUB_MULTS.map((m) => m * L); };
+const nearestTarget = (len, ts) => ts.reduce((a, t) => (Math.abs(len / t - 1) < Math.abs(len / a - 1) ? t : a));
+const stubOff = (len, ts) => Math.abs(len / nearestTarget(len, ts) - 1) > STUB_SLACK;
+
+// Each thin stub that's off the snap lengths by more than STUB_SLACK, brought to the nearest of them the
+// way it already points (its last stretch longer or shorter). Skipped if that would cross another line.
+function evenStubs() {
+  const ts = stubTargets();
+  let n = 0, skipped = 0;
+  for (const e of G.edges) {
+    const len = thinStub(e) && stubLen(e);
+    if (!len || !stubOff(len, ts)) continue;
+    const tip = stubTip(e), p = pos.get(tip), pts = anchors(e).map(xy), from = e.a === tip ? pts.slice().reverse() : pts;
+    const o = from[from.length - 2], r = nearestTarget(len, ts) - pathLen(from.slice(0, -1)), d = dist([p.x, p.y], o);
+    if (r <= settings.grid * 0.5 || !d) { skipped++; continue; }
+    const ei = G.edges.indexOf(e), old = { x: p.x, y: p.y }, was = edgeCrossings(ei);
+    p.x = o[0] + (p.x - o[0]) * r / d; p.y = o[1] + (p.y - o[1]) * r / d;
+    if (edgeCrossings(ei) > was) { Object.assign(p, old); skipped++; continue; }
+    n++;
+  }
+  return { n, skipped };
+}
+
 function tidyStubs(includePinned) {
   const L = stubLength();
   let n = 0;
@@ -1090,7 +1127,7 @@ function orderedSlots(cur) {
 }
 
 function setBusy(b) {
-  ['btnStraighten', 'btnHairpins', 'btnUndo', 'btnUnpin', 'btnReset', 'btnStubs', 'btnFixSides'].forEach(id => $(id).disabled = b);
+  ['btnStraighten', 'btnHairpins', 'btnUndo', 'btnUnpin', 'btnReset', 'btnStubs', 'btnEvenStubs', 'btnFixSides'].forEach(id => $(id).disabled = b);
 }
 
 // ---------- rendering ----------
@@ -1167,7 +1204,8 @@ function render() {
   const bunch = sideBunches(k, coarse ? lod : null);
   const faint = (dim) => dim ? ' opacity=".18"' : '';
   syncZoomUI(k, coarse);
-  let lines = '', majorLines = '', hits = '', off = 0, offMarks = '';
+  let lines = '', majorLines = '', hits = '', off = 0, offMarks = '', offStubs = 0;
+  const stubTs = stubTargets();
   G.edges.forEach((e, i) => {
     const pts = edgePoints(e);
     const d = pathD(pts);
@@ -1178,10 +1216,10 @@ function render() {
     const stub = isStub(e) && !fullStub(e);
     // Dotted: goes nowhere (local roads, and stubs to junctions not picked yet). Dashed: a back road,
     // sketchy but maybe a way out. Private roads are red dashes.
-    const plainLine = !stub && !e.tip && !isThrough(e) && !st.private;
+    const plainLine = !stub && (!e.tip || e.tip === 'branch') && !isThrough(e) && !st.private;
     const back = plainLine && edgeTier(e) === BACK_ROAD, dots = stub || (plainLine && edgeTier(e) === DEAD_END);
     const dash = back ? ` stroke-dasharray="${w * 2.2} ${w * 1.5}"` : st.private ? ` stroke-dasharray="${Math.max(w * 2, 6 * k)} ${Math.max(w * 1.3, 4 * k)}"` : dots ? ` stroke-dasharray="0 ${Math.max(w * 2, 4 * k)}"` : '';
-    const line = `<path d="${d}" fill="none" stroke="${st.private ? PRIVATE_COLOR : st.color}" stroke-width="${st.private ? Math.max(w, 3 * k) : w}" stroke-linecap="${e.tip || isThrough(e) || st.private || back ? 'butt' : 'round'}" stroke-linejoin="round"${dash}${faint((coarse && lod.edges.has(i)) || bunch.edges.has(i))}/>`;
+    const line = `<path d="${d}" fill="none" stroke="${st.private ? PRIVATE_COLOR : st.color}" stroke-width="${st.private ? Math.max(w, 3 * k) : w}" stroke-linecap="${dots ? 'round' : e.tip || isThrough(e) || st.private || back ? 'butt' : 'round'}" stroke-linejoin="round"${dash}${faint((coarse && lod.edges.has(i)) || bunch.edges.has(i))}/>`;
     if (st.major) majorLines += line; else lines += line;
     if (morph === 1) {
       for (let j = 1; j < pts.length; j++) {
@@ -1190,10 +1228,15 @@ function render() {
         if (settings.offAngle) offMarks += `<path d="${pathD([pts[j - 1], pts[j]])}" fill="none" stroke="var(--danger)" stroke-opacity=".45" stroke-width="${w + 6 * k}" stroke-linecap="round"/>`;
       }
     }
+    if (settings.stubMarks && thinStub(e) && stubOff(stubLen(e), stubTs)) {
+      offMarks += `<path d="${d}" fill="none" stroke="var(--warn, #e8a33d)" stroke-opacity=".55" stroke-width="${w + 7 * k}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      offStubs++;
+    }
     hits += `<path class="hit" data-e="${i}" d="${d}" fill="none" stroke="transparent" stroke-width="${14 * k}" stroke-linecap="round" stroke-linejoin="round"/>`;
   });
   for (const b of bunch.list) lines += bunchBranch(b.at, b.dir, k).svg;
   $('gEdges').innerHTML = offMarks + lines + majorLines + (editable ? hits : '');
+  $('stubOffN').textContent = settings.stubMarks ? `(${offStubs} to fix)` : '';
 
   let nodesSvg = '';
   const mode = settings.labelMode;
@@ -1343,7 +1386,7 @@ function render() {
 const textWidth = (text, fs) => text.length * fs * 0.56;
 const lineWidth = (e) => {
   const t = edgeTier(e), w = TIER_W[t - 1];
-  return isStub(e) && !fullStub(e) ? (t <= COLORED ? w * 0.6 : 1.8) : w;   // thin dashed stubs
+  return (isStub(e) && !fullStub(e)) || e.tip === 'branch' ? (t <= COLORED ? w * 0.6 : 1.8) : w;   // thin dashed stubs, and branches
 };
 // A junction left with just one line, everything else off it hidden (Pineridge Way at Highland Way),
 // is really where that road ends: drawn like an open end, and its line like a stub. Not for colored roads.
@@ -1751,12 +1794,12 @@ function roadLabels(k, placed, skip, bunches = []) {
       continue;
     }
     const lines = n.group.label.split(/\s*,\s*/).filter(Boolean).map(shortName);
-    out += tipLabel(n.id, lines, 10 * k, k, placed, 'fill="var(--muted)"');
+    out += tipLabel(n.id, lines, 9.5 * k, k, placed, 'font-style="italic" fill="var(--muted)"');
   }
   for (const b of bunches) {
     // A long list is cut short: the rest are found by zooming in.
     const lines = b.names.length > 6 ? [...b.names.slice(0, 5), `+ ${b.names.length - 5} more`] : b.names;
-    if (lines.length) out += tipLabel({ tip: b.tip, dir: b.dir }, lines, 10 * k, k, placed, 'fill="var(--muted)"');
+    if (lines.length) out += tipLabel({ tip: b.tip, dir: b.dir }, lines, 9.5 * k, k, placed, 'font-style="italic" fill="var(--muted)"');
   }
   for (const e of G.edges) {
     if (!e.open || e.tip || !isThrough(e)) continue;
@@ -1813,6 +1856,10 @@ let overlay = { guides: [], box: null, marker: null };
 function renderOverlay() {
   const k = upp();
   let s = '';
+  for (const r of overlay.ring?.rs || []) {
+    const on = r === overlay.ring.on;
+    s += `<circle cx="${fmt(overlay.ring.o[0])}" cy="${fmt(overlay.ring.o[1])}" r="${fmt(r)}" fill="none" stroke="var(--accent)" stroke-opacity="${on ? '.8' : '.3'}" stroke-width="${(on ? 1.5 : 1) * k}" stroke-dasharray="${4 * k} ${3 * k}"/>`;
+  }
   for (const [a, b] of overlay.guides) s += `<line x1="${fmt(a[0])}" y1="${fmt(a[1])}" x2="${fmt(b[0])}" y2="${fmt(b[1])}" stroke="var(--accent)" stroke-width="${1 * k}" stroke-dasharray="${4 * k} ${3 * k}"/>`;
   if (overlay.box) {
     const [a, b] = overlay.box;
@@ -2452,6 +2499,19 @@ function toSvg(ev) {
   return [view.x + (ev.clientX - r.left) * k, view.y + (ev.clientY - r.top) * k];
 }
 
+// A thin stub's tip being dragged: the circles it snaps to, so the stub comes out at one of the stub
+// lengths (the rest of the stub, if it has bends, counts toward them). Null for anything else, or with it off.
+function stubRing(id) {
+  if (!settings.stubSnap) return null;
+  const inc = G.incident.get(id) || [];
+  const e = inc.length === 1 && G.edges[inc[0]];
+  if (!e || !thinStub(e) || stubTip(e) !== id) return null;
+  const pts = anchors(e).map(xy), from = e.a === id ? pts.slice().reverse() : pts;   // junction first
+  const o = from[from.length - 2], rest = pathLen(from.slice(0, -1));
+  const rs = stubTargets().map((t) => t - rest).filter((r) => r > settings.grid * 0.5);
+  return rs.length ? { o, rs } : null;
+}
+
 // Points a dragged anchor should line up with: the next anchor along each of its lines.
 function neighborsOf(target, moving) {
   const out = [];
@@ -2470,8 +2530,27 @@ function neighborsOf(target, moving) {
 }
 
 // Snap to the crossing of two 45° (or 22.5°) lines through neighbors, else onto one, else to the grid.
-function snap(raw, nbs) {
+// ring { o, rs }: a stub's tip, which snaps first to one of the stub lengths (rs from o, the point before
+// it): at one of the 45° (or 22.5°) directions if one is close, else the way it's pointing.
+function snap(raw, nbs, ring) {
   const tol = 10 * upp();
+  if (ring) {
+    const st0 = angStep(), dr = dist(raw, ring.o);
+    let best = null;
+    for (const r of ring.rs) {
+      for (let d = 0; d < Math.round(2 * Math.PI / st0); d++) {
+        const p = [ring.o[0] + Math.cos(d * st0) * r, ring.o[1] + Math.sin(d * st0) * r], dd = dist(p, raw);
+        if (dd < tol * 1.3 && (!best || dd < best.d)) best = { p, d: dd, guides: [[ring.o, p]], ring: { ...ring, on: r } };
+      }
+    }
+    if (best) return best;
+    const r = dr && ring.rs.find((r) => Math.abs(dr - r) < tol);
+    if (r) {
+      const p = [ring.o[0] + (raw[0] - ring.o[0]) * r / dr, ring.o[1] + (raw[1] - ring.o[1]) * r / dr];
+      return { p, guides: [[ring.o, p]], ring: { ...ring, on: r } };
+    }
+    return { ...snap(raw, nbs), ring };
+  }
   const lines = [], st = angStep(), nd = Math.round(Math.PI / st);
   for (const n of nbs) for (let d = 0; d < nd; d++) lines.push({ o: n, v: [Math.cos(d * st), Math.sin(d * st)] });
   let best = null;
@@ -2608,14 +2687,14 @@ svg.addEventListener('pointermove', (ev) => {
       const o = drag.orig.get(drag.primary);
       const raw = [o[0] + dx, o[1] + dy];
       const moving = new Set(drag.ids);
-      const s = ev.altKey ? { p: raw, guides: [] } : snap(raw, neighborsOf({ node: drag.primary }, moving));
+      const s = ev.altKey ? { p: raw, guides: [] } : snap(raw, neighborsOf({ node: drag.primary }, moving), drag.ids.length === 1 ? stubRing(drag.primary) : null);
       const ddx = s.p[0] - o[0], ddy = s.p[1] - o[1];
       for (const id of drag.ids) {
         const q = pos.get(id), oo = drag.orig.get(id);
         q.x = oo[0] + ddx; q.y = oo[1] + ddy;
       }
       for (const [b, oo] of drag.bendOrig) { b.x = oo[0] + ddx; b.y = oo[1] + ddy; }
-      overlay.guides = s.guides;
+      overlay.guides = s.guides; overlay.ring = s.ring || null;
     } else {
       const raw = [drag.orig[0] + dx, drag.orig[1] + dy];
       const s = ev.altKey ? { p: raw, guides: [] } : snap(raw, neighborsOf({ edge: drag.edge, bend: drag.bend }, new Set([drag.bend])));
@@ -2629,7 +2708,7 @@ svg.addEventListener('pointermove', (ev) => {
       const freshX = now.crossings.filter(c => !drag.baseIssues.has('x' + c.key));
       if (fresh.length || freshX.length) {
         before.forEach(([q, x, y]) => { q.x = x; q.y = y; });
-        overlay.guides = [];
+        overlay.guides = []; overlay.ring = null;
         showBlocked(fresh.length ? sideMessage(fresh[0]) : `${esc(shortName(G.edges[freshX[0].a].road || 'unnamed road'))} would cross ${esc(shortName(G.edges[freshX[0].b].road || 'unnamed road'))}`);
       } else hideBlocked();
     }
@@ -2686,7 +2765,7 @@ function endDrag(ev) {
     if (!drag.moved && !drag.clickEdge) { selected.clear(); selEdge = null; selBend = null; selPlace = null; renderSel(); }
     saveView();
   }
-  overlay.guides = [];
+  overlay.guides = []; overlay.ring = null;
   drag = null;
   render();
 }
@@ -2978,7 +3057,7 @@ function applyState(s) {
 // Version 2 is what the public map is built from (site/build-map.mjs): it adds resolved road
 // styles, map exits and collapsed branches, and the projection. Edges are given in their
 // canonical direction (a -> b, see buildGraph); `rev` says the graph's coords run b -> a.
-const DERIVED_VERSION = 2;
+const DERIVED_VERSION = 3;   // 3: a collapsed branch's tier is its most important road's
 function derivedObj() {
   const styles = {};
   const lod = deadEnds(), local = deadEnds(false);
@@ -3161,6 +3240,8 @@ $('btnPlaceHand').onclick = () => setPlacingHand(!placingHand);
 $('placeList').onclick = (ev) => { const row = ev.target.closest('[data-pl]'); if (row) selectPlace(row.dataset.pl, true); };
 const osmLoaded = fetch('/data/places-osm.json', { cache: 'no-store' }).then(r => (r.ok ? r.json() : { places: [] })).then(d => { osmPlaces = d.places || []; renderPlaceResults(); }).catch(() => {});
 $('tOff').onchange = (ev) => { settings.offAngle = ev.target.checked; render(); };
+$('tStubSnap').onchange = (ev) => { settings.stubSnap = ev.target.checked; };
+$('tStubMarks').onchange = (ev) => { settings.stubMarks = ev.target.checked; render(); };
 $('tGeo').onchange = (ev) => { settings.ghost = ev.target.checked; render(); };
 $('evenness').oninput = (ev) => { settings.evenness = ev.target.value / 100; };
 $('evenness').onchange = () => markDirty();
@@ -3189,6 +3270,14 @@ $('btnReset').onclick = () => {
   markDirty(); render(); renderSel();
 };
 $('btnFit').onclick = fit;
+$('btnEvenStubs').onclick = () => {
+  setMorph(1);
+  pushHistory();
+  const { n, skipped } = evenStubs();
+  if (n) markDirty();
+  render();
+  flashHint(`${n} stub${n === 1 ? '' : 's'} evened out${skipped ? `; ${skipped} left (they'd cross a line, or bend too close to their tip)` : ''}`);
+};
 $('btnStubs').onclick = () => {
   setMorph(1);
   pushHistory();

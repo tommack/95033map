@@ -175,6 +175,8 @@ the node picker rewrites on every save (an open editor picks up the change by it
 - **Branches**: a cluster of side roads drawn as one stub off the main road, labeled with
   their names. Click one of its lines, *Select the branch beyond here* (it selects the
   cluster up to the nearest major roads; Shift-click to adjust), then *Collapse into branch*.
+  A branch is drawn like a stub of the most important road folded into it, no heavier than any of
+  them alone: dotted if they're all local roads, dashed if one is a back road, with a bar at its end.
 - **Neighborhoods**: a tangle of streets with several ways through (Redwood Estates) can be drawn
   as one junction. Select its junctions (*Select area*), then *Collapse into neighborhood* and give it
   a name. It's drawn as a large circle with three dots, and the name goes on the side away from its roads.
@@ -343,6 +345,12 @@ The address bar always holds the link to what's on the map, so it can be copied 
   or crossing a line; otherwise the short line is left off until you zoom in far enough (and so is
   the circle of a junction that's then just a bend). Their names are placed before the names along
   the lines, so a stub, once there, mostly stays as you zoom in.
+- **Crowded junctions**: where junction circles would touch at the current zoom, only the most important
+  keeps its circle (the one on the biggest road, then with the most roads; a back road counts for least,
+  below local roads); the others are drawn as plain bends until you zoom in.
+- **U roads**: a local road with both ends on the same road and nothing else on it (Timber Lodge Rd off
+  Soquel San Jose Rd) is drawn as a named stub off its first junction, like any side road (so it bunches
+  with them zoomed out), and as it really runs, named at its far point, once it's big enough on screen.
 - **With a mouse**, the pointer turns into a hand over anything that can be clicked, and places, emoji,
   bunched side roads, neighborhoods and the map's edges get a tooltip with their name.
 - **Emoji:** the pin button (above the location button) puts an emoji on the map: tap it, tap the road

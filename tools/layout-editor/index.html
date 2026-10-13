@@ -35,6 +35,8 @@
           <option value="45">45°</option><option value="22.5">22.5°</option>
         </select></label>
         <label><input type="checkbox" id="tOff"> Show <span class="angName">off-45°</span></label>
+        <label title="Dragging a local road's stub end (or a branch's end) snaps it to the standard stub length, half of it or twice it (Alt drags freely)"><input type="checkbox" id="tStubSnap" checked> Snap stub length</label>
+        <label title="Mark local road stubs and branches more than 15% off all three stub lengths (standard, half, twice)"><input type="checkbox" id="tStubMarks"> Show stub lengths <span id="stubOffN"></span></label>
         <label><input type="checkbox" id="tGeo"> Ghost geography</label>
       </div>
     </section>
@@ -54,6 +56,7 @@
         <button id="btnUnpin">Unpin all</button>
         <button id="btnReset" title="Throw away the layout and start again from geography">Reset</button>
         <button id="btnStubs" title="Redraw roads that end at an unpicked junction as short stubs">Shorten stubs</button>
+        <button id="btnEvenStubs" title="Bring each marked local road stub or branch to the nearest stub length (standard, half or twice), the way it already points (Undo puts them back)">Even stub lengths</button>
         <button id="btnFit">Fit</button>
       </div>
     </section>

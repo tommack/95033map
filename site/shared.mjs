@@ -12,6 +12,7 @@ export const MINOR = '#a3a29b';
 export const BUNCH_PX = 24, BUNCH_LEN = 20;
 // A place's badge: radius, and its gap from the line's edge, in pixels.
 export const PLACE_R = 9, PLACE_GAP = 6;
+export const BACK_ROAD = 5;   // the road tiers: 1 highway … 5 back road, 6 local road
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 export const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -144,12 +145,15 @@ export function placeFit(pointAt, t, side, lineW, k, len, blocked) {
 
 // ---------- side roads bunched together ----------
 // A bunch's branch: from junction at, heading dir, BUNCH_LEN pixels long, ending in a bar.
+// It ends in an open bracket facing the names ([ on the right, ] on the left), where a branch collapsed
+// by hand ends in a plain bar.
 export function bunchBranch(at, [ux, uy], k) {
-  const x = at[0] + ux * BUNCH_LEN * k, y = at[1] + uy * BUNCH_LEN * k, w = TIER_W[3] * k, H = Math.max(w * 1.5, 6 * k);
+  const x = at[0] + ux * BUNCH_LEN * k, y = at[1] + uy * BUNCH_LEN * k, w = TIER_W[3] * k, H = Math.max(w * 1.5, 6 * k), A = H * 0.55;
+  const p = (s, a) => `${fmt(x + s * -uy * H + a * ux)} ${fmt(y + s * ux * H + a * uy)}`;
   return {
     tip: [x, y],
     svg: `<path d="M${fmt(at[0])} ${fmt(at[1])}L${fmt(x)} ${fmt(y)}" stroke="${MINOR}" stroke-width="${w}"/>` +
-      `<path d="M${fmt(x - uy * H)} ${fmt(y + ux * H)}L${fmt(x + uy * H)} ${fmt(y - ux * H)}" stroke="${MINOR}" stroke-width="${w}" stroke-linecap="round"/>`,
+      `<path d="M${p(1, A)}L${p(1, 0)}L${p(-1, 0)}L${p(-1, A)}" fill="none" stroke="${MINOR}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`,
   };
 }
 

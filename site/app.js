@@ -16,9 +16,9 @@
 
 import { buildAll, shortName } from './build-map.mjs';
 import {
-  esc, dist, lerp, clamp, fmt, pathLen, overlaps, segHitsBox, segProject, anchorsAt, anchorsProject,
+  esc, dist, lerp, clamp, fmt, unit, pathLen, overlaps, segHitsBox, segProject, anchorsAt, anchorsProject,
   chevrons as chevronSize, chevronSvg, tipText, areaSvg, placeFit, bunchSideRoads, bunchBranch,
-  TIER_W, MINOR, BUNCH_PX, PLACE_R,
+  TIER_W, MINOR, BUNCH_PX, PLACE_R, BACK_ROAD,
 } from './shared.mjs';
 
 const LIVE = new URLSearchParams(location.search).has('live');
@@ -80,6 +80,7 @@ function prepare(m) {
     return E;
   });
   standIns(nodes, edges);
+  uRoads(nodes, edges);
   const { lat0, lon0, kx, ky } = m.proj;
   const P = (lat, lon) => [(lon - lon0) * kx, -(lat - lat0) * ky];
   // Schematic and real positions, for the geography <-> schematic slider (see applyMorph).
@@ -135,6 +136,39 @@ function standIns(nodes, edges) {
       (o.virt ||= []).push(V);
     }
   }
+}
+
+// A local road with both ends on the same road and nothing else on it (Timber Lodge Rd, a U off Soquel
+// San Jose Rd) is drawn as a stub off its first junction, named like any side road, until it's big enough
+// on screen to be worth drawing as it is (U_ROAD_PX between its ends). The stub gets a tip of its own.
+const U_ROAD_PX = 110;
+function uRoads(nodes, edges) {
+  const stubs = edges.filter((e) => e.kind === 'stub').map((e) => pathLen(e.an.map((a) => [a.x, a.y]))).sort((a, b) => a - b);
+  const L = stubs[stubs.length >> 1] || 240;
+  for (const e of [...edges]) {
+    if (e.kind || e.virtual || e.A === e.B || e.A.kind || e.B.kind || !(e.tier > BACK_ROAD)) continue;
+    const on = (n) => n.edges.filter((x) => x !== e && !x.virtual);
+    const roads = new Set([...on(e.A), ...on(e.B)].map((x) => x.road));
+    if (on(e.A).length !== 2 || on(e.B).length !== 2 || roads.size !== 1 || roads.has(e.road)) continue;
+    // Out from the first junction, square to the road, on the side the U is.
+    const a = [e.A.x, e.A.y], b = [e.B.x, e.B.y], c = unit(a, b), mid = lerp(a, b, 0.5);
+    const far = e.an.reduce((f, q) => (dist([q.x, q.y], mid) > dist(f, mid) ? [q.x, q.y] : f), mid);
+    let nrm = [-c[1], c[0]];
+    if ((far[0] - mid[0]) * nrm[0] + (far[1] - mid[1]) * nrm[1] < 0) nrm = [-nrm[0], -nrm[1]];
+    const T = { id: `u:${e.key}`, kind: 'open', x: a[0] + nrm[0] * L, y: a[1] + nrm[1] * L, edges: [], lod: e.A.lod, local: e.A.local };
+    const V = { ...e, i: edges.length, key: `u:${e.key}`, slug: undefined, A: e.A, B: T, kind: 'stub', full: undefined, uFor: e,
+      an: [{ t: 0, x: a[0], y: a[1] }, { t: 1, x: T.x, y: T.y }] };
+    e.uStub = V;
+    T.edges.push(V); e.A.edges.push(V);
+    nodes.push(T); edges.push(V);
+  }
+}
+let uOpen = new Set();   // the U roads drawn as they are at this zoom
+function updateURoads(k) {
+  const open = new Set(M.edges.filter((e) => e.uStub && (morph < 1 || dist([e.A.x, e.A.y], [e.B.x, e.B.y]) / k >= U_ROAD_PX)));
+  const changed = open.size !== uOpen.size || [...open].some((e) => !uOpen.has(e));
+  uOpen = open;
+  return changed;
 }
 
 // ---------- geometry ----------
@@ -282,12 +316,11 @@ function reveal(p, zoomTo) {
 // own width; the first three are colored.
 // Back roads (through, but only just: narrow and winding, Morrell Rd) are gray dashes; local roads are
 // dotted like stubs (dotted: it goes nowhere).
-const BACK_ROAD = 5;
 // Drawn and described as a highway: tier 1 (older data without tiers: a corridor). A corridor
 // moved down a tier in the editor (CA 17 Business as Mount Hermon Rd) is an ordinary road.
 const isHighway = (e) => (e.tier ? e.tier === 1 : !!e.corridor);
 function lineWidth(e) {
-  if (e.kind === 'stub' && !e.full) return e.tier <= 3 ? TIER_W[e.tier - 1] * 0.6 : 1.8;
+  if ((e.kind === 'stub' && !e.full) || e.kind === 'branch') return e.tier <= 3 ? TIER_W[e.tier - 1] * 0.6 : 1.8;
   if (e.tier) return TIER_W[e.tier - 1];
   return e.corridor ? 7 : e.style.major ? 5.5 : 3;
 }
@@ -302,7 +335,8 @@ let coarse = false;
 let hideLocal = false;
 try { hideLocal = localStorage.getItem('hideLocal') === '1'; } catch {}
 const shownLod = (x) => !(coarse && x.lod) && !(hideLocal && x.local);
-const shownBase = (x) => shownLod(x) && !bunchHide.has(x) && (stubShow.has(x) || !stubEdges().has(x));
+const shownBase = (x) => shownLod(x) && !bunchHide.has(x) && (stubShow.has(x) || !stubEdges().has(x)) &&
+  (x.uStub ? uOpen.has(x) : x.uFor ? !uOpen.has(x.uFor) : true);
 // A neighborhood's stand-in line (see standIns) shows when none of its real roads in do; the junction
 // it ends at shows with it.
 const shown = (x) => (x.virtual ? x.stands.every((s) => !shownBase(s)) && x.via.some(shownBase) : shownBase(x) || !!x.virt?.some(shown));
@@ -312,14 +346,45 @@ const shown = (x) => (x.virtual ? x.stands.every((s) => !shownBase(s)) && x.via.
 // their names at its end. The other junctions lose their circles. Tapping the
 // branch zooms in until they come apart.
 let bunches = [], bunchHide = new Set(), bunchPlain = new Set(), bunchSig = '';
+// Like a stub, a bunch is drawn only once its names are placed (see drawLabels): a bracket with no
+// names says nothing. Keyed by its junction and side, which stay the same as the zoom changes.
+let bunchShow = new Set();
+const bunchKey = (b) => `${b.j.id}:${b.dir.map((v) => Math.round(v * 4)).join()}`;
+const bunchesShown = () => bunches.filter((b) => bunchShow.has(bunchKey(b)));
 // Dead-end stubs are drawn only once their name has been placed (a short line with no name says
 // nothing), and the circle of a junction that's then just a bend is left off. The labels decide, once
 // the zoom settles: until then a stub that wasn't there stays off, so nothing flashes on and off again.
 let stubShow = new Set(), stubPlain = new Set(), stubGen = 0;
 const stubEdges = () => (M.stubEdges ??= new Set(M.nodes.filter((n) => n.kind === 'open' && n.edges.length).map((n) => n.edges[0])));
-const plainNow = (n) => n.plain || bunchPlain.has(n) || stubPlain.has(n);
+const plainNow = (n) => n.plain || bunchPlain.has(n) || stubPlain.has(n) || clusterPlain.has(n);
+// Junction circles that would touch at this zoom: only the most important keeps its circle, the others
+// are drawn as plain bends (they come back as you zoom in). Most important: on the biggest road, then
+// the most roads. A back road counts for least here, below local roads: it's the sketchiest.
+let clusterPlain = new Set();
+const junctionR = (n) => (n.edges.some(isHighway) ? 6.2 : 4.6);
+function updateClusters(k) {
+  clusterPlain = new Set();
+  const rank = (t) => (t === BACK_ROAD ? 7 : t || 4);
+  const weight = (n) => {
+    const ts = n.edges.filter((e) => shownBase(e) && !e.virtual).map((e) => rank(e.tier)).sort((a, b) => a - b);
+    return [ts[0] ?? 9, ts[1] ?? 9, -ts.length, ts[2] ?? 9];
+  };
+  const kept = M.nodes.filter((n) => (n.kind === 'closed' || n.kind === 'area') && n.edges.length && shown(n))
+    .map((n) => ({ c: [n.x, n.y], r: n.kind === 'area' ? areaR(n, k) / k : 8.5 }));
+  const js = M.nodes.filter((n) => !n.kind && n.edges.length && shown(n) && !plainNow(n)).map((n) => ({ n, w: weight(n) }))
+    .sort((a, b) => a.w.reduce((d, v, i) => d || v - b.w[i], 0));
+  for (const { n } of js) {
+    const c = [n.x, n.y], r = junctionR(n);
+    if (kept.some((o) => dist(c, o.c) / k < r + o.r + 4)) clusterPlain.add(n);   // outlines touching, or nearly
+    else kept.push({ c, r });
+  }
+}
 function updateStubPlain() {
   stubPlain = new Set();
+  for (const e of M.edges) {
+    if (!e.uStub || shownBase(e)) continue;
+    for (const j of [e.A, e.B]) if (realEdges(j).filter(shownBase).length === 2) stubPlain.add(j);
+  }
   for (const e of stubEdges()) {
     if (shownBase(e) || !shownLod(e) || bunchHide.has(e)) continue;
     const j = e.A.kind === 'open' ? e.B : e.A;
@@ -343,7 +408,7 @@ function sideJunctions() {
   }
   // Only where one road carries on past them (or turns a corner).
   for (const [j, v] of J) {
-    v.carriers = realEdges(j).filter((x) => !v.leaves.some((l) => l.e === x));
+    v.carriers = realEdges(j).filter((x) => !v.leaves.some((l) => l.e === x) && !x.uStub);
     if (v.carriers.length !== 2) J.delete(j);
   }
   return (M.sideJ = J);
@@ -357,7 +422,7 @@ function updateBunches(k) {
   }
   const { bunches: found, plain } = bunchSideRoads(live, {
     pos: (n) => [n.x, n.y], ptsFrom, other: otherEnd, stop: (n) => !!n.kind,
-    next: (n, e) => n.edges.filter((x) => x !== e && shownLod(x) && !x.virtual),
+    next: (n, e) => n.edges.filter((x) => x !== e && shownLod(x) && !x.virtual && !x.uStub),
   }, BUNCH_PX * k);
   for (const b of found) {
     const names = [...new Set(b.leaves.flatMap((l) => (l.t.kind === 'branch' ? (l.t.label || '').split(/\s*,\s*/).filter(Boolean).map(shortName)
@@ -431,6 +496,12 @@ function drawLines() {
     if (e.style.private && e.kind !== 'stub') {
       // Private road (not open to the public): red dashes at its usual width.
       layers[0].push(`<path ${common} stroke="${PRIVATE}" stroke-width="${Math.max(w, 3)}" stroke-dasharray="${Math.max(w * 2, 6)} ${Math.max(w * 1.3, 4)}" stroke-linecap="butt"/>`);
+    } else if (e.kind === 'branch') {
+      // Side roads collapsed by hand into one: drawn like a stub of the most important of them, no
+      // heavier than any of them alone (dotted if they're all local roads, dashed for a back road).
+      const dash = e.tier > BACK_ROAD ? `stroke-dasharray="0 ${Math.max(w * 2, 4).toFixed(1)}" stroke-linecap="round"`
+        : e.tier === BACK_ROAD ? `stroke-dasharray="${(w * 2.2).toFixed(1)} ${(w * 1.5).toFixed(1)}" stroke-linecap="butt"` : 'stroke-linecap="butt"';
+      layers[0].push(`<path ${common} stroke="${e.style.color}" stroke-width="${w}" ${dash} opacity=".8"/>`);
     } else if (e.tier === BACK_ROAD && !e.kind) {
       layers[0].push(`<path ${common} stroke="${e.style.color}" stroke-width="${w}" stroke-dasharray="${(w * 2.2).toFixed(1)} ${(w * 1.5).toFixed(1)}" stroke-linecap="butt"/>`);
     } else if (e.tier > BACK_ROAD && (!e.kind || e.full)) {
@@ -462,8 +533,9 @@ function draw() {
     const c = M.zoom?.deadEnds != null && k > M.zoom.deadEnds;
     let lines = c !== coarse;
     coarse = c;
+    if ((k !== drawn.k || lines) && updateURoads(k)) lines = true;
     if ((k !== drawn.k || lines) && updateBunches(k)) lines = true;
-    if (k !== drawn.k || lines) updateStubPlain();
+    if (k !== drawn.k || lines) { updateStubPlain(); updateClusters(k); }
     if (lines) drawLines();
     if (k !== drawn.k || lines) {
       drawn.k = k;
@@ -505,7 +577,7 @@ function areaInside(n, k) {
 }
 
 function drawNodes(k) {
-  let s = bunches.map((b) => bunchSvg(b, k)).join('');
+  let s = bunchesShown().map((b) => bunchSvg(b, k)).join('');
   for (const n of M.nodes) {
     if (n.kind === 'open' || !n.edges.length || !shown(n) || plainNow(n)) continue;
     const { x, y } = n;
@@ -533,7 +605,7 @@ function drawNodes(k) {
       continue;
     }
     const big = n.edges.some(isHighway);
-    const r = (big ? 6.2 : 4.6) * k;
+    const r = junctionR(n) * k;
     s += `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${r}" fill="var(--node-fill)" stroke="var(--node-stroke)" stroke-width="${(big ? 2.6 : 2) * k}"/>`;
   }
   for (const q of M.places) if (placeShown(q)) s += placeSvg(q, k);
@@ -626,6 +698,8 @@ function drawLabels(k) {
   for (const { c: [x, y], r } of shownPlaces) placed.push({ x0: x - r, y0: y - r, x1: x + r, y1: y + r });
   let out = '';
   const halo = (w) => `stroke="var(--halo)" stroke-width="${w * k}" stroke-linejoin="round" paint-order="stroke"`;
+  // Side roads' names, at a stub's tip or listed at a collapsed branch's: small, gray, italic.
+  const stubText = `font-style="italic" fill="var(--muted)" ${halo(2.5)}`;
 
   // Exits, branches and roads that continue off the map first: they say where a line goes.
   for (const n of M.nodes) {
@@ -675,19 +749,22 @@ function drawLabels(k) {
   for (const n of M.nodes) {
     if (n.kind !== 'branch' || !n.edges.length || !shown(n)) continue;
     const lines = n.label.split(/\s*,\s*/).filter(Boolean).map(shortName);
-    out += tipLabel(n, lines, 11, 400, k, placed, `fill="var(--muted)" ${halo(3)}`);
+    out += tipLabel(n, lines, 10, 400, k, placed, stubText);
   }
+  const named = new Set();
   for (const b of bunches) {
     // A long list is cut short: the rest are found by zooming in.
     const lines = b.names.length > 6 ? [...b.names.slice(0, 5), `+ ${b.names.length - 5} more`] : b.names;
     const [x, y] = bunchTip(b, k);
-    if (lines.length) out += tipLabel({ x, y, kind: 'branch', dir: b.dir }, lines, 11, 400, k, placed, `fill="var(--muted)" ${halo(3)}`);
+    const label = lines.length ? tipLabel({ x, y, kind: 'branch', dir: b.dir }, lines, 10, 400, k, placed, stubText) : '';
+    if (label) { out += label; named.add(bunchKey(b)); }
   }
 
   // Dead-end stubs: the road's name, small, past the tip; with no room for it, no stub. Before the names
   // along the lines, which move about as you zoom, so that a stub, once there, stays as you zoom in.
   // A stub that's the end of a road named along its own line is named there instead (below).
-  const show = new Set(), drawable = (x) => shownLod(x) && !bunchHide.has(x), fullStubs = [];
+  const show = new Set(), fullStubs = [];
+  const drawable = (x) => shownLod(x) && !bunchHide.has(x) && (x.uStub ? uOpen.has(x) : x.uFor ? !uOpen.has(x.uFor) : true);
   // ...and not across another line.
   const lineBoxes = M.edges.filter((x) => drawable(x) && !x.virtual).map((x) => {
     const pts = anchorPts(x), xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
@@ -700,7 +777,7 @@ function drawLabels(k) {
     const e = n.edges[0];
     if (!drawable(e)) continue;
     if (e.full) { fullStubs.push(n); continue; }
-    const label = isPlaceholder(e.road) ? '' : tipLabel(n, [roadText(e.road)], 10, 400, k, placed, `font-style="italic" fill="var(--muted)" ${halo(2.5)}`, acrossLine(e));
+    const label = isPlaceholder(e.road) ? '' : tipLabel(n, [roadText(e.road)], 10, 400, k, placed, stubText, acrossLine(e));
     if (label) { out += label; show.add(e); }
   }
 
@@ -787,25 +864,53 @@ function drawLabels(k) {
     out += `<text x="${fmt(tx)}" y="${fmt(ty)}" dy="0.35em" text-anchor="${anchor}" font-size="${fs}" font-weight="600" fill="var(--text)" ${halo(3)}>${esc(name)}</text>`;
   }
 
+  // A U road drawn as it is: its name past its far point, unless its line got one.
+  for (const e of uOpen) {
+    if (!shown(e) || byName.has(e.road) || isPlaceholder(e.road)) continue;
+    // Its far point: furthest out from the line between its ends, and the name past it, square to that line.
+    const a = [e.A.x, e.A.y], c = unit(a, [e.B.x, e.B.y]), out_ = (q) => (q[0] - a[0]) * -c[1] + (q[1] - a[1]) * c[0];
+    const far = anchorPts(e).reduce((f, q) => (Math.abs(out_(q)) > Math.abs(out_(f)) ? q : f), a), side = Math.sign(out_(far));
+    const name = roadText(e.road);
+    if (side) out += tipText(far, [-c[1] * side, c[0] * side], 6 * k, [name], 11 * k, textWidth(name, 11, 400) * k, placed, `fill="var(--muted)" ${halo(3)}`);
+  }
   for (const n of fullStubs) {
     const e = n.edges[0];
-    // Part of its road's line, already named along it; or named at its tip.
-    const label = byName.has(e.road) || isPlaceholder(e.road) ? '' : tipLabel(n, [roadText(e.road)], 10, 400, k, placed, `font-style="italic" fill="var(--muted)" ${halo(2.5)}`, acrossLine(e));
+    // Carrying straight on from its road's line, already named along it: no name of its own. Turning
+    // off it (the road goes one way, the line carries on as another road), it's named at its tip,
+    // since nobody would follow the road round the corner.
+    const onLine = byName.has(e.road) && carriesOn(e);
+    const label = onLine || isPlaceholder(e.road) ? '' : tipLabel(n, [roadText(e.road)], 10, 400, k, placed, stubText, acrossLine(e));
     if (label) out += label;
-    if (label || byName.has(e.road)) show.add(e);
+    if (label || onLine) show.add(e);
   }
   $('gLabels').innerHTML = out;
-  if (show.size !== stubShow.size || [...show].some((e) => !stubShow.has(e))) {
+  const same = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
+  const stubsChanged = !same(show, stubShow), bunchesChanged = !same(named, bunchShow);
+  bunchShow = named;
+  if (stubsChanged) {
     stubShow = show; stubGen++;
-    updateStubPlain();
-    drawLines(); drawNodes(k);
+    updateStubPlain(); updateClusters(k);
+    drawLines();
   }
+  if (stubsChanged || bunchesChanged) drawNodes(k);
 }
 
 function tipLabel(n, lines, px, weight, k, placed, attrs, blocked) {
   const tw = Math.max(...lines.map((l) => textWidth(Array.isArray(l) ? l[0] : l, px, weight))) * k;
   const gap = n.kind === 'through' || n.kind === 'exit' ? chevrons(n.edges[0], k).extent + 5 * k : (n.kind === 'branch' ? 9 : 5) * k;
   return tipText([n.x, n.y], n.dir || tipDir(n), gap, lines, px * k, tw, placed, attrs, blocked);
+}
+
+// Whether stub e carries straight on from its road at the junction it starts from: the straightest way on
+// from a line of the same road, within 30°.
+function carriesOn(e) {
+  const j = e.A.kind === 'open' ? e.B : e.A, out = (x) => { const p = ptsFrom(x, j); return unit(p[0], p[1]); };
+  const a = out(e);
+  return realEdges(j).some((s) => {
+    if (s === e || s.road !== e.road) return false;
+    const b = out(s), along = (d) => -(b[0] * d[0] + b[1] * d[1]);   // 1: straight on from s
+    return along(a) > Math.cos(Math.PI / 6) && realEdges(j).every((x) => x === s || x === e || along(out(x)) <= along(a));
+  });
 }
 
 // ---------- selection card ----------
@@ -1358,6 +1463,7 @@ function tap(ev) {
     return zoomAt(Math.min(0.6, b.gap / (BUNCH_PX * 1.5 * k)), W / 2, H / 2);
   }
   if (h?.type === 'node') return select({ type: 'node', n: h.n }, { reveal: false, add });
+  if (h?.type === 'edge' && h.e.uFor) return pickRun({ edges: [h.e.uFor], ends: [h.e.uFor.A, h.e.uFor.B] }, h.e.uFor, 0.5, add);
   if (h?.type === 'edge') return pickRun(runOf(h.e), h.e, h.t, add);
   if (!add && sel?.type !== 'me') select(null);
 }
@@ -1369,7 +1475,7 @@ function hitAt(p, k, tol) {
   if (me?.loc && !me.loc.far && dist(p, me.loc.at) < tol) return { type: 'me' };
   const poi = M.places.filter(placeShown).map((q) => ({ q, d: dist(p, placeGeom(q, k).c) })).filter((x) => x.d < Math.max(tol, (PLACE_R + 3) * k)).sort((a, b) => a.d - b.d)[0];
   if (poi) return { type: 'poi', q: poi.q };
-  const b = bunches.find((b) => segProject([b.j.x, b.j.y], bunchTip(b, k), p).d <= tol);
+  const b = bunchesShown().find((b) => segProject([b.j.x, b.j.y], bunchTip(b, k), p).d <= tol);
   if (b) return { type: 'bunch', b };
   let node = null;
   for (const n of M.nodes) {
