@@ -334,12 +334,16 @@ let coarse = false;
 // what only leads to them) at any zoom, keeping back roads, which might be a way out.
 let hideLocal = false;
 try { hideLocal = localStorage.getItem('hideLocal') === '1'; } catch {}
-const shownLod = (x) => !(coarse && x.lod) && !(hideLocal && x.local);
+// Neighborhoods are left off too, and the roads into them: drawn that small, their circles only cover
+// the main roads.
+const isArea = (x) => x.kind === 'area' || x.A?.kind === 'area' || x.B?.kind === 'area';
+const shownLod = (x) => !(coarse && (x.lod || isArea(x))) && !(hideLocal && x.local);
 const shownBase = (x) => shownLod(x) && !bunchHide.has(x) && (stubShow.has(x) || !stubEdges().has(x)) &&
+  (x.kind !== 'branch' || !x.edges || stubShow.has(realEdges(x)[0])) &&
   (x.uStub ? uOpen.has(x) : x.uFor ? !uOpen.has(x.uFor) : true);
 // A neighborhood's stand-in line (see standIns) shows when none of its real roads in do; the junction
 // it ends at shows with it.
-const shown = (x) => (x.virtual ? x.stands.every((s) => !shownBase(s)) && x.via.some(shownBase) : shownBase(x) || !!x.virt?.some(shown));
+const shown = (x) => (x.virtual ? !coarse && x.stands.every((s) => !shownBase(s)) && x.via.some(shownBase) : shownBase(x) || !!x.virt?.some(shown));
 
 // Side roads bunched together: dead ends and collapsed branches off one road whose junctions are
 // closer than BUNCH_PX on screen are drawn, zoomed out, as one branch each side of the road with all
@@ -351,11 +355,12 @@ let bunches = [], bunchHide = new Set(), bunchPlain = new Set(), bunchSig = '';
 let bunchShow = new Set();
 const bunchKey = (b) => `${b.j.id}:${b.dir.map((v) => Math.round(v * 4)).join()}`;
 const bunchesShown = () => bunches.filter((b) => bunchShow.has(bunchKey(b)));
-// Dead-end stubs are drawn only once their name has been placed (a short line with no name says
+// Dead-end stubs (and branches collapsed by hand) are drawn only once their name has been placed (a short line with no name says
 // nothing), and the circle of a junction that's then just a bend is left off. The labels decide, once
 // the zoom settles: until then a stub that wasn't there stays off, so nothing flashes on and off again.
 let stubShow = new Set(), stubPlain = new Set(), stubGen = 0;
-const stubEdges = () => (M.stubEdges ??= new Set(M.nodes.filter((n) => n.kind === 'open' && n.edges.length).map((n) => n.edges[0])));
+const stubEdges = () => (M.stubEdges ??= new Set(M.nodes.filter((n) => (n.kind === 'open' || n.kind === 'branch') && realEdges(n).length)
+  .map((n) => realEdges(n)[0])));
 const plainNow = (n) => n.plain || bunchPlain.has(n) || stubPlain.has(n) || clusterPlain.has(n);
 // Junction circles that would touch at this zoom: only the most important keeps its circle, the others
 // are drawn as plain bends (they come back as you zoom in). Most important: on the biggest road, then
@@ -387,7 +392,7 @@ function updateStubPlain() {
   }
   for (const e of stubEdges()) {
     if (shownBase(e) || !shownLod(e) || bunchHide.has(e)) continue;
-    const j = e.A.kind === 'open' ? e.B : e.A;
+    const j = e.A.kind === 'open' || e.A.kind === 'branch' ? e.B : e.A;
     if (!j.kind && realEdges(j).filter(shownBase).length === 2) stubPlain.add(j);
   }
 }
@@ -746,11 +751,6 @@ function drawLabels(k) {
       break;
     }
   }
-  for (const n of M.nodes) {
-    if (n.kind !== 'branch' || !n.edges.length || !shown(n)) continue;
-    const lines = n.label.split(/\s*,\s*/).filter(Boolean).map(shortName);
-    out += tipLabel(n, lines, 10, 400, k, placed, stubText);
-  }
   const named = new Set();
   for (const b of bunches) {
     // A long list is cut short: the rest are found by zooming in.
@@ -772,6 +772,15 @@ function drawLabels(k) {
   });
   const acrossLine = (own) => (box) => lineBoxes.some(({ e, pts, box: b }) => e !== own && (show.has(e) || !stubEdges().has(e)) && overlaps(box, [b]) &&
     pts.some((q, i) => i && segHitsBox(pts[i - 1], q, box)));
+  // Side roads collapsed by hand into one branch: the same, with their names listed at its tip.
+  for (const n of M.nodes) {
+    if (n.kind !== 'branch' || !n.edges.length) continue;
+    const e = realEdges(n)[0];
+    if (!e || !drawable(e)) continue;
+    const lines = (n.label || '').split(/\s*,\s*/).filter(Boolean).map(shortName);
+    const label = lines.length ? tipLabel(n, lines, 10, 400, k, placed, stubText, acrossLine(e)) : '';
+    if (label) { out += label; show.add(e); }
+  }
   for (const n of M.nodes) {
     if (n.kind !== 'open' || !n.edges.length) continue;
     const e = n.edges[0];
