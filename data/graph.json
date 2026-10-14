@@ -1,6 +1,6 @@
 {
- "rev": 467,
- "savedAt": "2026-10-11T05:17:32.730Z",
+ "rev": 486,
+ "savedAt": "2026-10-14T05:15:12.664Z",
  "state": {
   "version": 3,
   "enabled": [
@@ -38,7 +38,7 @@
     ]
    }
   ],
-  "active": null,
+  "active": "4010337345",
   "nodes": [
    {
     "id": "91048935",
@@ -145,14 +145,6 @@
     "auto": true,
     "members": [
      1118305878
-    ]
-   },
-   {
-    "id": "4010337345",
-    "name": "Laurel Road / Redwood Lodge Road",
-    "auto": true,
-    "members": [
-     4010337345
     ]
    },
    {
@@ -679,14 +671,6 @@
     "auto": true,
     "members": [
      91063106
-    ]
-   },
-   {
-    "id": "91103276",
-    "name": "Old Santa Cruz Highway / Schulties Road",
-    "auto": true,
-    "members": [
-     91103276
     ]
    },
    {
@@ -2944,6 +2928,135 @@
     "auto": true,
     "members": [
      91028049
+    ]
+   },
+   {
+    "id": "1853493718",
+    "name": "Pierce Road / Old Japanese Road West",
+    "auto": true,
+    "members": [
+     1853493718
+    ]
+   },
+   {
+    "id": "8900576276",
+    "name": "Pierce Road",
+    "auto": true,
+    "members": [
+     8900576276
+    ]
+   },
+   {
+    "id": "91038907",
+    "name": "Pierce Road",
+    "auto": true,
+    "members": [
+     91038907
+    ]
+   },
+   {
+    "id": "349036943",
+    "name": "Brush Road / Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     349036943
+    ]
+   },
+   {
+    "id": "65449767",
+    "name": "Brush Road / Ridge Road",
+    "auto": true,
+    "members": [
+     65449767
+    ]
+   },
+   {
+    "id": "65449794",
+    "name": "Brush Road / Old Well Road",
+    "auto": true,
+    "members": [
+     65449794
+    ]
+   },
+   {
+    "id": "349034767",
+    "name": "Hebard Way / Santa Cruz Highway",
+    "auto": true,
+    "members": [
+     349034767,
+     349035872
+    ]
+   },
+   {
+    "id": "6754911353",
+    "name": "Hebard Road / Madrona Way",
+    "auto": true,
+    "members": [
+     6754911353
+    ]
+   },
+   {
+    "id": "6754911337",
+    "name": "Idylwild Road / Wright Drive",
+    "auto": true,
+    "members": [
+     6754911337
+    ]
+   },
+   {
+    "id": "6754911343",
+    "name": "Old Santa Cruz Highway / Wright Drive",
+    "auto": true,
+    "members": [
+     6754911343
+    ]
+   },
+   {
+    "id": "65537194",
+    "name": "Old Santa Cruz Highway / Melsha Way",
+    "auto": true,
+    "members": [
+     65537194
+    ]
+   },
+   {
+    "id": "6992031102",
+    "name": "Old Santa Cruz Highway / Oak Mount Drive",
+    "auto": true,
+    "members": [
+     6992031102
+    ]
+   },
+   {
+    "id": "65537203",
+    "name": "Old Santa Cruz Highway / Lexington School Road",
+    "auto": true,
+    "members": [
+     65537203
+    ]
+   },
+   {
+    "id": "91104582",
+    "name": "Stage Stop Way / Schulties Road",
+    "auto": true,
+    "members": [
+     91104582
+    ]
+   },
+   {
+    "id": "91103276",
+    "name": "Old Santa Cruz Highway / Schulties Road",
+    "auto": true,
+    "members": [
+     91103276
+    ]
+   },
+   {
+    "id": "4010337345",
+    "name": "Laurel Road / Redwood Lodge Road",
+    "auto": true,
+    "members": [
+     4010337345
     ]
    }
   ]
