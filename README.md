@@ -125,7 +125,7 @@ the node picker rewrites on every save (an open editor picks up the change by it
   3. *Secondary road*: colored, a little thinner. Only roads you put there
   4. *Connector*: thin gray roads that go somewhere
   5. *Back road*: roads that go through, but only in the literal sense (sketchy, but maybe a way out;
-     local roads are no use in an emergency): narrow and winding, for the
+     local roads are no use in an emergency): narrow, for the
      people who live along them and as a way out in an emergency (Morrell Rd, Jarvis Rd). Only set by
      hand. The public map's card says so
   6. *Local road*: roads only the people who live on them use. Automatically, stretches

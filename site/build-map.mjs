@@ -117,7 +117,8 @@ export function buildMap(graph, layout, slugsIn = null, { live: liveElsewhere = 
     if (n.stations) out.stations = n.stations;
     if (n.lod) out.lod = n.lod;
     if (n.local) out.local = 1;   // left off by "Hide local roads"
-    if (n.plain) out.plain = 1;   // no circle: one road just carries on through it
+    if (n.plain) out.plain = 1;
+    if (n.gap) out.gap = 1;   // a closure drawn as a break in the line: the road doesn't connect here any more   // no circle: one road just carries on through it
     return out;
   });
   const nodeIdx = new Map(nodes.map((n, i) => [n.id, i]));

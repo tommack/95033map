@@ -314,7 +314,7 @@ function reveal(p, zoomTo) {
 // depend on the zoom and are redrawn when it changes.
 // Each tier of road (1 highway, 2 main road, 3 secondary road, 4 connector, 5 back road, 6 local road) has its
 // own width; the first three are colored.
-// Back roads (through, but only just: narrow and winding, Morrell Rd) are gray dashes; local roads are
+// Back roads (through, but only just: narrow, Morrell Rd) are gray dashes; local roads are
 // dotted like stubs (dotted: it goes nowhere).
 // Drawn and described as a highway: tier 1 (older data without tiers: a corridor). A corridor
 // moved down a tier in the editor (CA 17 Business as Mount Hermon Rd) is an ordinary road.
@@ -592,7 +592,18 @@ function drawNodes(k) {
         s += areaSvg(x, y, areaR(n, k), k, { dots: !areaInside(n, k) });
         continue;
       }
-      if (n.kind === 'closed') {
+      if (n.kind === 'closed' && n.gap) {
+        // Not connected (the road once went through): the line breaks, each side ending in a squiggle.
+        const g = GAP_R * k;
+        s += `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${g}" fill="var(--bg)"/>`;
+        for (const f of realEdges(n).filter(shown)) {
+          const pts = ptsFrom(f, n), [vx, vy] = unit(pts[0], pts[1]), fw = lineWidth(f) * k, H = Math.max(fw * 1.5, 5 * k);
+          // A squiggle across the line's end (an S, like a break mark), not a bar: bars end branches.
+          const bx = x + vx * g, by = y + vy * g, A = H * 0.6;
+          s += `<path d="M${fmt(bx - vy * H)} ${fmt(by + vx * H)}Q${fmt(bx - vy * H / 2 + vx * A)} ${fmt(by + vx * H / 2 + vy * A)} ${fmt(bx)} ${fmt(by)}` +
+            `Q${fmt(bx + vy * H / 2 - vx * A)} ${fmt(by - vx * H / 2 - vy * A)} ${fmt(bx + vy * H)} ${fmt(by - vx * H)}" fill="none" stroke="${f.style.color}" stroke-width="${Math.max(fw, 1.5 * k)}" stroke-linecap="round"/>`;
+        }
+      } else if (n.kind === 'closed') {
         // Road closed (a washed-out bridge): a no-entry sign, red disc with a white bar.
         const r = 8.5 * k, h = r * 0.62;
         s += `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${r}" fill="#d93025" stroke="var(--node-fill)" stroke-width="${1.5 * k}"/>` +
@@ -948,6 +959,7 @@ function actionsHtml(ll, label) {
 function shareUrl(hash) { return `${location.origin}${location.pathname}#${hash}`; }
 const tStr = (t) => String(Math.round(t * 1000) / 1000);
 
+const WINDING = 2.25, WINDING_MIN = 500;   // real length ÷ straight line, and the shortest stretch (m) flagged
 function edgeCard(e, t, kicker = null) {
   const ll = M.U(realAt(e.real, t));
   // Tapped zoomed out: the stretch between the junctions you can see.
@@ -961,9 +973,15 @@ function edgeCard(e, t, kicker = null) {
     : ends.length === 2 ? `Between ${esc(ends[0])} and ${esc(ends[1])}` : ends.length ? `From ${esc(ends[0])}` : '';
   const others = (e.roads || []).filter((r) => r && r !== e.road && !isPlaceholder(r) && !/^(CA|US|I|SR)[ -]?\d/.test(r));
   const back = e.tier === BACK_ROAD;
+  // Winding: the road is much longer than the straight line between its ends, so the trip takes
+  // longer than the map makes it look.
+  const endAt = (n, list) => { const x = list.find((y) => y.A === n || y.B === n) || list[0]; return x.A === n ? x.real[0] : x.real[x.real.length - 1]; };
+  const [p0, p1] = run ? run.ends.map((n) => endAt(n, run.edges)) : [e.real[0], e.real[e.real.length - 1]];
+  const wind = e.A === e.B ? 0 : len / Math.max(1, dist(p0, p1));
+  const winding = len >= WINDING_MIN && wind >= WINDING ? ` <span class="flag" title="${miles(len)} of road for ${miles(len / wind)} as the crow flies">winding road</span>` : '';
   return `<div class="kicker">${kicker || (e.style.private ? 'Private road' : back ? 'Back road' : isHighway(e) ? 'Highway' : e.tier > BACK_ROAD ? 'Local road' : 'Road')}</div>
     <h2><span class="chip" style="background:${e.style.private ? PRIVATE : e.style.color}"></span>${esc(roadText(e.road) || 'Unnamed road')}</h2>
-    <div class="meta">${e.style.private ? '<b>Not open to the public.</b><br>' : back ? 'Narrow and winding. Mainly for people who live along it, and a way out in an emergency.<br>' : ''}${where}${where ? ' · ' : ''}${miles(len)} of road${others.length ? `<br>Also signed ${others.map((r) => esc(shortName(r))).join(', ')}` : ''}</div>
+    <div class="meta">${e.style.private ? '<b>Not open to the public.</b><br>' : back ? 'Narrow. Mainly for people who live along it, and a way out in an emergency.<br>' : ''}${where}${where ? ' · ' : ''}${miles(len)} of road${winding}${others.length ? `<br>Also signed ${others.map((r) => esc(shortName(r))).join(', ')}` : ''}</div>
     ${actionsHtml(ll, roadText(e.road))}`;
 }
 
@@ -974,9 +992,17 @@ function foundHere(n) {
   return `<b>${esc(shortName(sel.road))}</b> ${where}.<br>`;
 }
 
+const GAP_R = 10.5;   // half the break where a road doesn't connect any more, in px
+const gapText = (n) => [...new Set(n.edges.map((e) => roadText(e.road)).filter(Boolean))].join(' / ');
 function nodeCard(n) {
   const ll = nodeLatLon(n);
   const roads = [...new Set(n.edges.map((e) => e.road).filter((r) => !isPlaceholder(r)))];
+  if (n.kind === 'closed' && n.gap) {
+    return `<div class="kicker">Not connected</div>
+      <h2>${esc(n.label || gapText(n) || 'Not connected')}</h2>
+      <div class="meta">${gapText(n) ? esc(gapText(n)) + ' doesn’t' : 'The road doesn’t'} go through here any more: its two ends aren’t connected.</div>
+      ${actionsHtml(ll, n.label || gapText(n) || 'Not connected')}`;
+  }
   if (n.kind === 'closed') {
     const roads = [...new Set(n.edges.map((e) => roadText(e.road)).filter(Boolean))];
     return `<div class="kicker">Road closed</div>
@@ -1518,6 +1544,7 @@ function tipFor(h) {
   if (h.type === 'node') {
     const n = h.n;
     if (n.kind === 'area') return [n.label, n.sub ? 'Neighborhood · click to open its map' : 'Neighborhood'];
+    if (n.kind === 'closed' && n.gap) return [n.label || gapText(n) || 'Not connected', 'Not connected: doesn’t go through'];
     if (n.kind === 'closed') return [n.label || 'Road closed', 'Road closed'];
     if (n.kind) return [pickName({ n }), n.kind === 'branch' ? 'Side roads' : 'Edge of the map'];
   }

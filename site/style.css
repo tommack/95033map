@@ -89,6 +89,10 @@ body.has-card #controls { transform: translateY(calc(-1 * var(--card-h, 0px))); 
 #cardBody h2 { margin: 0 32px 2px 0; font-size: 18px; line-height: 1.25; display: flex; align-items: center; gap: 8px; }
 #cardBody h2 .chip { width: 14px; height: 14px; border-radius: 4px; flex: none; }
 #cardBody .meta { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+#cardBody .flag { font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 8px; white-space: nowrap; cursor: help;
+  color: #8a5300; background: #fdecc8; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #cardBody .flag { color: #f3c37a; background: #4a3613; } }
+:root[data-theme="dark"] #cardBody .flag { color: #f3c37a; background: #4a3613; }
 #cardBody .roads { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 2px 0 10px; }
 #cardBody .road { font-size: 12px; padding: 1px 8px 1px 6px; border-radius: 10px; background: color-mix(in srgb, var(--muted) 14%, transparent);
   display: inline-flex; align-items: center; gap: 5px; }

@@ -206,7 +206,8 @@ function areaOnly(nodes, edges, roads) {
 // keeping their full real geometry, so the real <-> schematic transform still covers them.
 // Everything else in the group is hidden; positions on it map to the group's tip.
 //   closed: two or more dead ends that are really one road that doesn't go through (a
-//           washed-out bridge): joined at one "road closed" node (nodes: the open ends)
+//           washed-out bridge): joined at one "road closed" node (nodes: the open ends); with
+//           gap: true, not connected (an old road that's long gone in the middle): drawn as a break
 //   tail:   an open-ended stub that's simply not drawn (nodes: [its open end]); with no
 //           tip, positions on it map to the nearest road that is drawn
 //   area:   a neighborhood (Redwood Estates): its junctions become one node that every road
@@ -217,7 +218,8 @@ function applyGroups(nodes, edges) {
   for (const g of groups) {
     if (g.kind === 'area' && AREA) continue;
     if (g.kind === 'closed') {
-      const ids = g.nodes.filter(id => nodes.get(id)?.open && !nodes.get(id).tip);
+      // Its dead ends: open ends, or picked junctions that only one road reaches.
+      const ids = g.nodes.filter(id => { const n = nodes.get(id); return n && !n.tip && !n.closed && !n.area && (n.open || list.filter(e => e.a === id || e.b === id).length === 1); });
       if (ids.length < 2) continue;
       const id = `x:${g.id}`, geos = ids.map(x => nodes.get(x).geo);
       nodes.set(id, { id, name: g.label, geo: [0, 1].map(i => geos.reduce((s, q) => s + q[i], 0) / geos.length),
@@ -307,7 +309,7 @@ function defaultMajor(st) { return !!st.corridor || (st.count >= 3 && st.len >= 
 
 // Tiers: 1 highway, 2 main road, 3 secondary road (all colored), 4 connector, 5 back road,
 // 6 local road (all gray; local roads are saved as 'deadend', their first name). Back roads go
-// through, but only in the literal sense: narrow and winding, for the people who live along them
+// through, but only in the literal sense: narrow, for the people who live along them
 // and as a way out in an emergency (Morrell Rd). Back roads are drawn dashed, local roads dotted (like stubs:
 // dotted means it goes nowhere). Local roads are the ones
 // only people who live on them use: dead ends, loops, and anything put there by hand (Timber Lodge Rd). A
@@ -1243,7 +1245,10 @@ function render() {
   const fs = (mode === 'both' ? 10 : 11.5) * k;
   const placed = [];   // label boxes (and node discs) already taken, in schematic units
   const stationLabels = [];
+  // Dead ends joined into a closure are left with no roads: they're drawn as the closure.
+  const joined = new Set(groups.filter(g => g.kind === 'closed').flatMap(g => g.nodes));
   for (const [id, n] of G.nodes) {
+    if (joined.has(id) && !G.incident.get(id)?.length) continue;
     const mark = nodesSvg.length;
     drawNode(id, n);
     if ((coarse && lod.nodes.has(id)) || bunch.nodes.has(id)) nodesSvg = nodesSvg.slice(0, mark) + `<g opacity=".18">${nodesSvg.slice(mark)}</g>`;
@@ -1275,6 +1280,22 @@ function render() {
       placed.push({ x0: x - r, y0: y - r, x1: x + r, y1: y + r });
       const lb = areaLabelAt(id, x, y, r + 5 * k, n.group.label, 11 * k);
       stationLabels.push({ box: lb.box, svg: `<text x="${fmt(lb.x)}" y="${fmt(lb.y)}" dy="0.35em" text-anchor="${lb.anchor}" font-size="${11 * k}" font-weight="700" fill="var(--text)" stroke="var(--halo)" stroke-width="${3 * k}" paint-order="stroke" pointer-events="none">${esc(n.group.label)}</text>` });
+      return;
+    }
+    if (n.closed && n.group.gap) {
+      // Not connected: the line breaks, each side ending in a squiggle.
+      const g = 10.5 * k;   // half the break, as on the public map (GAP_R)
+      if (sel) nodesSvg += `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${g + 4 * k}" fill="var(--accent)" fill-opacity=".3"/>`;
+      nodesSvg += `<circle class="handle" data-n="${esc(id)}" cx="${fmt(x)}" cy="${fmt(y)}" r="${g}" fill="var(--bg)"/>`;
+      for (const i of G.incident.get(id) || []) {
+        const e = G.edges[i], pts = edgePoints(e), q = e.a === id ? pts[1] : pts[pts.length - 2];
+        const L = Math.hypot(q[0] - x, q[1] - y) || 1, ux = (q[0] - x) / L, uy = (q[1] - y) / L, w = lineWidth(e) * k, H = Math.max(w * 1.5, 5 * k);
+        // A squiggle across the line's end, as on the public map.
+        const bx = x + ux * g, by = y + uy * g, A = H * 0.6;
+        nodesSvg += `<path d="M${fmt(bx - uy * H)} ${fmt(by + ux * H)}Q${fmt(bx - uy * H / 2 + ux * A)} ${fmt(by + ux * H / 2 + uy * A)} ${fmt(bx)} ${fmt(by)}` +
+          `Q${fmt(bx + uy * H / 2 - ux * A)} ${fmt(by - ux * H / 2 - uy * A)} ${fmt(bx + uy * H)} ${fmt(by - ux * H)}" fill="none" stroke="${roadStyle(e).color}" stroke-width="${Math.max(w, 1.5 * k)}" stroke-linecap="round" pointer-events="none"/>`;
+      }
+      placed.push({ x0: x - g, y0: y - g, x1: x + g, y1: y + g });
       return;
     }
     if (n.closed) {
@@ -1968,15 +1989,22 @@ function renderSel() {
     $('selAreaSize').onchange = () => markDirty();
   } else if (selected.size === 1 && G.nodes.get([...selected][0])?.closed) {
     const g = G.nodes.get([...selected][0]).group;
-    el.innerHTML = `<div class="nm">Road closed</div>
-      <div class="meta">The road doesn't go through here; drawn as one junction with a no-through sign.</div>
+    el.innerHTML = `<div class="nm">${g.gap ? 'Not connected' : 'Road closed'}</div>
+      <div class="meta">The road doesn't go through here; ${g.gap ? 'drawn as a break in its line.' : 'drawn as one junction with a no-through sign.'}</div>
+      <div class="row"><label style="flex:1">Drawn as</label><select id="selGapKind">
+        <option value=""${g.gap ? '' : ' selected'}>Road closed sign</option><option value="1"${g.gap ? ' selected' : ''}>Not connected (a break)</option></select></div>
       <div class="field">Label</div>
-      <input type="text" id="selLabel" value="${esc(g.label)}" placeholder="e.g. Bridge out">
+      <input type="text" id="selLabel" value="${esc(g.label)}" placeholder="${g.gap ? 'optional' : 'e.g. Bridge out'}">
       <div class="row"><button id="selExpand" title="Go back to two separate dead ends">Remove closure</button></div>`;
     $('selLabel').onchange = (ev) => {
       const s0 = stateObj();
       s0.groups.find(x => x.id === g.id).label = ev.target.value.trim();
       pushHistory(); applyStateKeepSel(s0); markDirty();
+    };
+    $('selGapKind').onchange = (ev) => {
+      const s0 = stateObj(), x = s0.groups.find(q => q.id === g.id);
+      if (ev.target.value) { x.gap = true; if (x.label === 'Road closed') x.label = ''; } else { delete x.gap; if (!x.label) x.label = 'Road closed'; }
+      pushHistory(); applyStateKeepSel(s0); markDirty(); renderSel();
     };
     $('selExpand').onclick = () => expandGroup(g.id);
   } else if (selected.size === 1 && G.nodes.get([...selected][0])?.group?.id === 'to') {
@@ -2008,6 +2036,14 @@ function renderSel() {
       const d = dist(o.geo, n.geo);
       if (d < 300 && (!near || d < near.d)) near = { id: oid, d, road: G.edges[G.incident.get(oid)[0]].road || 'unnamed' };
     }
+    // The nearest other dead end of the same road, which may once have joined up with this one.
+    let twin = null;
+    const ownRoad = deadEnd(id) && G.edges[G.incident.get(id)[0]].road;
+    if (ownRoad) for (const [oid, o] of G.nodes) {
+      if (oid === id || !deadEnd(oid) || G.edges[G.incident.get(oid)[0]].road !== ownRoad) continue;
+      const d = dist(o.geo, n.geo);
+      if (d < 5000 && (!twin || d < twin.d)) twin = { id: oid, d };
+    }
     const tails = n.open ? [] : (G.incident.get(id) || []).map(i => G.edges[i]).filter(e => e.open && !e.tip);
     el.innerHTML = `<div class="nm">${te ? esc(roadText(te.road) || 'Open end') + ' (end of the map)' : esc(n.name)}</div>
       <div class="meta">${te ? 'This road keeps going after the map stops; it ends in chevrons.' : n.open ? 'Open end — the road continues to a junction that isn\'t a node yet' : `${n.deg} line${n.deg === 1 ? '' : 's'}${st ? ' · station on ' + esc(st) : ''}`}</div>
@@ -2016,6 +2052,7 @@ function renderSel() {
         <button class="small" id="selGeo">Move to real position</button>
       </div>
       ${near ? `<div class="row"><button id="selJoin" title="Join these dead ends into one junction with a no-through sign (e.g. a washed-out bridge)">Road closed between here and the ${esc(shortName(near.road))} end ${Math.round(near.d)} m away</button></div>` : ''}
+      ${twin ? `<div class="row"><button id="selGap" title="Draw the two ends of this road as one line with a break in it: it once went through but doesn't any more">Not connected to the other ${esc(shortName(ownRoad))} end ${twin.d < 1000 ? Math.round(twin.d) + ' m' : (twin.d / 1000).toFixed(1) + ' km'} away</button></div>` : ''}
       ${n.open ? `<div class="row"><button id="selTail" title="Don't draw this stub (e.g. a side street that's only here because of a junction you picked)">Hide this tail</button></div>
         <div class="row"><label title="The road keeps going after the map stops (e.g. Hwy 1): drawn solid with chevrons and its name"><input type="checkbox" id="selThrough" ${throughEdge(id) ? 'checked' : ''}> Road continues off the map</label></div>
         ${throughEdge(id) ? `<div class="field">Where it goes (optional)</div><input type="text" id="selDest" placeholder="e.g. to Santa Cruz" value="${esc(ends[id]?.label || '')}">` : ''}` : ''}
@@ -2034,6 +2071,7 @@ function renderSel() {
       markDirty(); render(); renderSel();
     });
     if (near) $('selJoin').onclick = () => joinClosed([id, near.id]);
+    if (twin) $('selGap').onclick = () => joinClosed([id, twin.id], true);
     el.querySelectorAll('[data-tail]').forEach(b => b.onclick = () => { hideTail(b.dataset.tail); selected = new Set([id]); render(); renderSel(); });
     if (n.open) {
       const setEnd = (patch) => {
@@ -2050,11 +2088,12 @@ function renderSel() {
   } else if (selected.size > 1) {
     // Plain junctions only: a neighborhood (or other collapsed part) can't go inside another one.
     const ids = [...selected].filter(id => !G.nodes.get(id).open && !G.nodes.get(id).group);
-    const opens = [...selected].filter(id => G.nodes.get(id).open && !G.nodes.get(id).tip);
+    const opens = [...selected].filter(deadEnd);
     const areas = [...selected].map(id => G.nodes.get(id)).filter(n => n.area);
     el.innerHTML = `<div class="nm">${selected.size} nodes</div><div class="meta">Drag the shaded area (or any of them) to move them all. Arrow keys nudge by one grid step.</div>
       <div class="row"><button id="selPinAll">Pin</button><button id="selUnpinAll">Unpin</button></div>
-      ${opens.length >= 2 && opens.length === selected.size ? `<div class="row"><button id="selJoin" title="Join these dead ends into one junction with a no-through sign (e.g. a washed-out bridge)">Join as a road closure</button></div>` : ''}
+      ${opens.length >= 2 && opens.length === selected.size ? `<div class="row"><button id="selJoin" title="Join these dead ends into one junction with a no-through sign (e.g. a washed-out bridge)">Join as a road closure</button>
+        <button id="selGap" title="Draw these ends as one road with a break in it: it once went through but doesn't any more">Join as not connected</button></div>` : ''}
       ${areas.length === 1 && ids.length ? `<div class="row"><button id="selAddArea" title="Draw these junctions as part of the neighborhood too">Add ${ids.length} junction${ids.length === 1 ? '' : 's'} to ${esc(areas[0].group.label)}</button></div>` : ''}
       ${ids.length && !areas.length ? `<div class="row"><button id="selBranch" title="Draw these nodes and their roads as one labeled stub off the main road">Collapse into branch</button>
         <button id="selExits" title="Hide these nodes; every road into them ends in an arrow">Collapse into map exit</button></div>
@@ -2063,6 +2102,7 @@ function renderSel() {
     $('selPinAll').onclick = () => setPin(true);
     $('selUnpinAll').onclick = () => setPin(false);
     if ($('selJoin')) $('selJoin').onclick = () => joinClosed(opens);
+    if ($('selGap')) $('selGap').onclick = () => joinClosed(opens, true);
     if ($('selAddArea')) $('selAddArea').onclick = () => addToArea(areas[0], ids);
     if (ids.length && !areas.length) {
       $('selBranch').onclick = () => collapse('branch', ids);
@@ -2366,13 +2406,19 @@ function addToArea(n, ids) {
 }
 
 // Join dead ends that are really one road that doesn't go through (a washed-out bridge).
-function joinClosed(ids) {
+// A dead end that can be joined to another: an open end, or a junction only one road reaches.
+function deadEnd(id) {
+  const n = G.nodes.get(id);
+  return !!n && !n.tip && !n.closed && !n.area && (n.open || G.incident.get(id)?.length === 1);
+}
+// Not connected (gap): the road once went through but doesn't any more; drawn as a break in the line.
+function joinClosed(ids, gap = false) {
   if (animating) return;
   const at = ids.map(id => xy(pos.get(id)));
   pushHistory();
   const st = stateObj();
   const gid = 'g' + (Math.max(0, ...groups.map(g => Number(g.id.slice(1)) || 0)) + 1);
-  st.groups.push({ id: gid, kind: 'closed', label: 'Road closed', nodes: ids });
+  st.groups.push(gap ? { id: gid, kind: 'closed', gap: true, label: '', nodes: ids } : { id: gid, kind: 'closed', label: 'Road closed', nodes: ids });
   applyState(st);
   const nid = `x:${gid}`;
   if (G.nodes.has(nid)) {
@@ -3048,6 +3094,13 @@ function applyState(s) {
     if (keys.has(k)) bends.set(k, list.map(v => ({ t: v[0], x: v[1], y: v[2], pin: !!v[3] })).sort((a, b) => a.t - b.t));
     else orphans.bends[k] = list;
   }
+  // A place whose line was split or rerouted (a junction added or removed along it) goes back on the
+  // nearest line at its real spot. Not one whose line is hidden in a collapsed part: its ends are gone too.
+  for (const pl of places) {
+    if (keys.has(pl.key) || !pl.key.split('|').every(s => G.nodes.has(s.split('/')[0]))) continue;
+    const p = proj(pl.lat, pl.lon), sn = snapReal(p);
+    if (sn && sn.d < 300) Object.assign(pl, { key: sn.e.key, t: +sn.t.toFixed(5), side: realSide(sn.e, sn.t, p) });
+  }
   return added;
 }
 
@@ -3078,7 +3131,8 @@ function derivedObj() {
     nodes: [...G.nodes.values()].map(n => ({
       id: n.id, name: n.tip || n.closed || n.area ? undefined : n.name, x: r1(pos.get(n.id).x), y: r1(pos.get(n.id).y),
       kind: n.tip || (n.closed ? 'closed' : n.area ? 'area' : throughEdge(n.id) ? 'through' : n.open || bareEnd(n.id) ? 'open' : undefined),
-      label: n.tip || n.closed || n.area ? n.group.label : throughEdge(n.id) ? ends[n.id]?.label || undefined : undefined,
+      label: n.tip || n.closed || n.area ? n.group.label || undefined : throughEdge(n.id) ? ends[n.id]?.label || undefined : undefined,
+      gap: n.closed && n.group.gap ? 1 : undefined,   // not connected: a break in the line, no sign
       ll: n.area ? unproj(n.geo).map(v => +v.toFixed(6)) : undefined,
       roads: n.area ? n.roads : undefined,
       size: n.area && n.group.size ? n.group.size : undefined,
