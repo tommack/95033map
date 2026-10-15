@@ -342,7 +342,8 @@ The address bar always holds the link to what's on the map, so it can be copied 
   map, Esc or the card's × clears the highlights.
 - **Places:** shops, schools and the like are drawn as a small icon beside their road, on the side the
   place is (on a gray circle in dark mode), with the name next to it where there's room once zoomed in;
-  zoomed out, just the icon. An icon that would sit on another line, a junction or another icon
+  zoomed out, just the icon. Once zoomed out past where local roads drop off, or while its road is
+  hidden, the icon stays where it would be but loses its tick to the road. An icon that would sit on another line, a junction or another icon
   slides along its road (never across it) until it's clear. Tap one for its card (type, name, the road it's
   on, and Google or Apple Maps). Search finds them too, including ones on a neighborhood's own map.
 - **Dead-end stubs** are drawn only where their name fits at their tip without covering another label
@@ -361,7 +362,8 @@ The address bar always holds the link to what's on the map, so it can be copied 
   where it goes, and pick one in the popup that opens right there (tree down, crash, road closed, power
   line down, flooding, rocks or slide, fire, hazard, or any emoji typed into *Other*). Tapping another
   spot first moves it; ×, Esc or the pin button again cancels. Your location's card can also put one where you are.
-  Emoji stay when the highlights are cleared; tap one to change it or remove it.
+  Emoji stay when the highlights are cleared; tap one to change it or remove it. Each sways gently
+  from its point so it's hard to miss (held still if the device asks for reduced motion).
 - Nothing is stored on a server: it's all in the link. The share button shares everything on the map
   (on a phone with the system share sheet; elsewhere it copies the link).
   Your location is never put in the address bar.

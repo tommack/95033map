@@ -456,7 +456,7 @@ const bunchTip = (b, k) => bunchBranch([b.j.x, b.j.y], b.dir, k).tip;
 const bunchSvg = (b, k) => bunchBranch([b.j.x, b.j.y], b.dir, k).svg;
 
 // Places (shops, schools…): a badge with an icon beside the road, on the side the place is, joined to
-// it by a tick, with the name past it. Left off with their road.
+// it by a tick, with the name past it. Kept when their road is left off (see placeTied).
 const PLACE_NAME_K = 8;   // meters per pixel: zoomed in past this, places get their names; zoomed out, just the icon
 // In light mode just the icon; in dark mode a gray circle behind it, which the icons need there.
 const DARK = matchMedia('(prefers-color-scheme: dark)');
@@ -468,7 +468,7 @@ function placeGeom(q, k) {
   if (placeFits?.M !== M || placeFits.key !== key) placeFits = { M, key, at: fitPlaces(k) };
   return placeFits.at.get(q) || fitPlaces(k, [q]).get(q);
 }
-function fitPlaces(k, list = M.places.filter(placeShown)) {
+function fitPlaces(k, list = M.places) {
   const lines = M.edges.filter((e) => shown(e) && !e.virtual).map((e) => {
     const pts = anchorPts(e), xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
     return { e, pts, w: lineWidth(e) * k / 2, box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] };
@@ -490,10 +490,11 @@ function fitPlaces(k, list = M.places.filter(placeShown)) {
   }
   return out;
 }
-const placeShown = (q) => shown(q.e);
+// Zoomed out, or while its road is left off, a badge stands alone where it would be, with no tick.
+const placeTied = (q) => !coarse && shown(q.e);
 function placeSvg(q, k) {
   const { at, n, r, c: [x, y] } = placeGeom(q, k), bare = !DARK.matches, end = bare ? r * 0.75 : r;
-  return `<path d="M${fmt(at[0])} ${fmt(at[1])}L${fmt(x - n[0] * end)} ${fmt(y - n[1] * end)}" stroke="var(--muted)" stroke-width="${1.5 * k}"/>` +
+  return (placeTied(q) ? `<path d="M${fmt(at[0])} ${fmt(at[1])}L${fmt(x - n[0] * end)} ${fmt(y - n[1] * end)}" stroke="var(--muted)" stroke-width="${1.5 * k}"/>` : '') +
     (bare ? '' : `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${r}" fill="var(--poi-fill)"/>`) +
     `<text x="${fmt(x)}" y="${fmt(y)}" dy="0.35em" text-anchor="middle" font-size="${(bare ? 14 : 11) * k}">${esc(q.icon)}</text>`;
 }
@@ -632,7 +633,7 @@ function drawNodes(k) {
     const r = junctionR(n) * k;
     s += `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${r}" fill="var(--node-fill)" stroke="var(--node-stroke)" stroke-width="${(big ? 2.6 : 2) * k}"/>`;
   }
-  for (const q of M.places) if (placeShown(q)) s += placeSvg(q, k);
+  for (const q of M.places) s += placeSvg(q, k);
   $('gNodes').innerHTML = s;
 }
 
@@ -644,14 +645,19 @@ function pinNode(q) { const n = q.t <= 0 ? q.e.A : q.t >= 1 ? q.e.B : null; retu
 const pinSpot = (q) => (pinNode(q) ? [pinNode(q).x, pinNode(q).y] : schemAt(q.e, q.t));
 function pinAt(q, k) {
   const [x, y] = pinSpot(q), a = pinNode(q);
-  return [x, y - (a ? areaR(a, k) : 0) - 24 * k];
+  return [x, y - (a ? areaR(a, k) : 0) - PIN_UP * k];
 }
+// The bubble's radius and height above its spot, in pixels. It sways from its point (see .sway in
+// style.css); the delay keeps the swing in step across redraws, so panning doesn't restart it.
+const PIN_R = 18, PIN_UP = 29, SWAY_S = 2.6;
 function pinSvg(q, k) {
-  const [x, y] = pinAt(q, k), on = sel?.pin === q, r = 15 * k, [px, py] = pinSpot(q);
-  return (pinNode(q) ? '' : `<circle cx="${fmt(px)}" cy="${fmt(py)}" r="${3.5 * k}" fill="${on ? 'var(--accent)' : 'var(--node-stroke)'}" stroke="var(--card)" stroke-width="${1.5 * k}"/>`) +
-    `<path d="M${fmt(x - 6 * k)} ${fmt(y + r - 3 * k)}L${fmt(x)} ${fmt(y + r + 7 * k)}L${fmt(x + 6 * k)} ${fmt(y + r - 3 * k)}Z" fill="${on ? 'var(--accent)' : 'var(--node-stroke)'}"/>` +
-    `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${r}" fill="var(--card)" stroke="${on ? 'var(--accent)' : 'var(--node-stroke)'}" stroke-width="${2 * k}"/>` +
-    `<text x="${fmt(x)}" y="${fmt(y)}" dy="0.36em" text-anchor="middle" font-size="${17 * k}" class="emo">${esc(q.emoji)}</text>`;
+  const [x, y] = pinAt(q, k), on = sel?.pin === q, r = PIN_R * k, [px, py] = pinSpot(q);
+  const ink = on ? 'var(--accent)' : 'var(--node-stroke)', tip = y + r + 8 * k, delay = -(performance.now() / 1000 % (SWAY_S * 2));
+  return (pinNode(q) ? '' : `<circle cx="${fmt(px)}" cy="${fmt(py)}" r="${4 * k}" fill="${ink}" stroke="var(--card)" stroke-width="${1.5 * k}"/>`) +
+    `<g transform="translate(${fmt(x)} ${fmt(tip)})"><g class="sway" style="animation-delay:${delay.toFixed(2)}s">` +
+    `<path d="M${fmt(-7 * k)} ${fmt(-11 * k)}L0 0L${fmt(7 * k)} ${fmt(-11 * k)}Z" fill="${ink}"/>` +
+    `<circle cy="${fmt(y - tip)}" r="${r}" fill="var(--card)" stroke="${ink}" stroke-width="${2.5 * k}"/>` +
+    `<text y="${fmt(y - tip)}" dy="0.36em" text-anchor="middle" font-size="${21 * k}" class="emo">${esc(q.emoji)}</text></g></g>`;
 }
 function drawMarks(k = upp()) {
   // Lines are highlighted in two groups, each see-through as a whole, so they don't darken where they meet.
@@ -718,7 +724,7 @@ function drawLabels(k) {
     const r = n.kind === 'area' ? areaR(n, k) : 4 * k;
     return { x0: n.x - r, y0: n.y - r, x1: n.x + r, y1: n.y + r };
   });
-  const shownPlaces = M.places.filter(placeShown).map((q) => ({ q, ...placeGeom(q, k) }));
+  const shownPlaces = M.places.map((q) => ({ q, ...placeGeom(q, k) }));
   for (const { c: [x, y], r } of shownPlaces) placed.push({ x0: x - r, y0: y - r, x1: x + r, y1: y + r });
   let out = '';
   const halo = (w) => `stroke="var(--halo)" stroke-width="${w * k}" stroke-linejoin="round" paint-order="stroke"`;
@@ -1513,10 +1519,10 @@ function tap(ev) {
 // What's at map point p (k: map units per pixel, tol: how near counts), topmost first: an emoji, your
 // location, a place, a bunch of side roads, a junction or neighborhood, a line. Taps and the tooltip.
 function hitAt(p, k, tol) {
-  const pin = [...pins].reverse().find((q) => dist(p, pinAt(q, k)) < 16 * k);
+  const pin = [...pins].reverse().find((q) => dist(p, pinAt(q, k)) < (PIN_R + 1) * k);
   if (pin) return { type: 'pin', pin };
   if (me?.loc && !me.loc.far && dist(p, me.loc.at) < tol) return { type: 'me' };
-  const poi = M.places.filter(placeShown).map((q) => ({ q, d: dist(p, placeGeom(q, k).c) })).filter((x) => x.d < Math.max(tol, (PLACE_R + 3) * k)).sort((a, b) => a.d - b.d)[0];
+  const poi = M.places.map((q) => ({ q, d: dist(p, placeGeom(q, k).c) })).filter((x) => x.d < Math.max(tol, (PLACE_R + 3) * k)).sort((a, b) => a.d - b.d)[0];
   if (poi) return { type: 'poi', q: poi.q };
   const b = bunchesShown().find((b) => segProject([b.j.x, b.j.y], bunchTip(b, k), p).d <= tol);
   if (b) return { type: 'bunch', b };
