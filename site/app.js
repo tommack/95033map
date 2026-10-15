@@ -18,7 +18,7 @@ import { buildAll, shortName } from './build-map.mjs';
 import {
   esc, dist, lerp, clamp, fmt, unit, pathLen, overlaps, segHitsBox, segProject, anchorsAt, anchorsProject,
   chevrons as chevronSize, chevronSvg, tipText, areaSvg, placeFit, bunchSideRoads, bunchBranch,
-  TIER_W, MINOR, BUNCH_PX, PLACE_R, BACK_ROAD,
+  TIER_W, BUNCH_PX, PLACE_R, BACK_ROAD, tierColor,
 } from './shared.mjs';
 
 const LIVE = new URLSearchParams(location.search).has('live');
@@ -74,11 +74,19 @@ function prepare(m) {
     const E = {
       ...e, i, A: nodes[e.a], B: nodes[e.b],
       an: triples(e.an).map(([t, x, y]) => ({ t, x, y })), real: triples(e.real),
-      style: m.roads[e.road] || { color: MINOR, major: false },
+      style: m.roads[e.road] || { major: false },
     };
+    const t = e.tier || (E.style.major ? 3 : 4);
+    E.style = { ...E.style, color: tierColor(t) };   // colored by tier, not by road
     E.A.edges.push(E); if (E.B !== E.A) E.B.edges.push(E);
     return E;
   });
+  // A road's color (its chip on cards and in search) is its most important stretch's.
+  m = { ...m, roads: { ...m.roads } };
+  for (const [r, st] of Object.entries(m.roads)) {
+    const top = Math.min(...edges.filter((e) => e.road === r).map((e) => e.tier || (st.major ? 3 : 4)));
+    m.roads[r] = { ...st, color: tierColor(Number.isFinite(top) ? top : 4) };
+  }
   standIns(nodes, edges);
   uRoads(nodes, edges);
   const { lat0, lon0, kx, ky } = m.proj;
@@ -129,7 +137,7 @@ function standIns(nodes, edges) {
         ...e, i: edges.length, key: `v:${n.id}:${o.id}`, slug: undefined, A: n, B: o, kind: undefined, lod: 0, local: 0,
         an: fwd ? e.an : e.an.map((a) => ({ ...a, t: 1 - a.t })).reverse(),
         real: fwd ? e.real : e.real.map(([x, y, t]) => [x, y, 1 - t]).reverse(),
-        road: `(${n.label})`, roads: [], style: { color: MINOR, major: false }, tier: 4,   // solid: it's the way in
+        road: `(${n.label})`, roads: [], style: { color: tierColor(4), major: false }, tier: 4,   // solid: it's the way in
         virtual: true, area: n, stands: g.map((m) => m.e), via: g.flatMap((m) => m.via), names: [...new Set(g.map((m) => m.e.road))],
       };
       edges.push(V); n.edges.push(V); o.edges.push(V);
@@ -866,7 +874,7 @@ function drawLabels(k) {
     if (!byName.has(c.e.road)) byName.set(c.e.road, []);
     byName.get(c.e.road).push(mid);
     out += `<text transform="translate(${fmt(spot.cx)} ${fmt(spot.cy)}) rotate(${((ang * 180) / Math.PI).toFixed(1)})" text-anchor="middle" dy="0.35em" font-size="${fs}"` +
-      `${c.major ? ' font-weight="600"' : ''} fill="${c.major ? c.e.style.color : 'var(--muted)'}" ${halo(3)}>${esc(text)}</text>`;
+      `${c.major ? ' font-weight="600"' : ''} fill="${c.major || (c.e.tier || 4) < BACK_ROAD ? c.e.style.color : 'var(--muted)'}" ${halo(3)}>${esc(text)}</text>`;
   }
 
   // Places: the name past the badge, away from the road, if there's room. Zoomed out, no label: the
@@ -945,7 +953,7 @@ const mapsLinks = ([lat, lon], label) => {
 };
 const nodeName = (n) => (n.kind === 'open' || n.kind === 'through' ? null : n.kind ? n.label : shortName(n.name));
 const miles = (m) => (m < 0.25 * MI ? `${Math.round(m * 3.281 / 10) * 10} ft` : `${(m / MI).toFixed(m < 10 * MI ? 1 : 0)} mi`);
-const chip = (road) => `<span class="road"><i style="background:${(M.roads[road] || {}).color || MINOR}"></i>${esc(roadText(road))}</span>`;
+const chip = (road) => `<span class="road"><i style="background:${(M.roads[road] || {}).color || tierColor(4)}"></i>${esc(roadText(road))}</span>`;
 
 function actionsHtml(ll, label) {
   const L = mapsLinks(ll, label);

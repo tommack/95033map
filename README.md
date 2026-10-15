@@ -95,7 +95,7 @@ the node picker rewrites on every save (an open editor picks up the change by it
   any time. The selected junctions get a shaded area; drag it (or any of them) to move them all,
   along with the bends between them.
 - **Options popup**: click any junction, line, stub end, map exit or bend and its options
-  open in a popup beside it (pin, hide tails, map exit, branch, major road, color, label,
+  open in a popup beside it (pin, hide tails, map exit, branch, major road, label,
   bends). Shift-click several junctions for the group options. `Esc` or × closes it.
 - **Bends**: double-click a line to add one. It's tied to a specific point on the
   real road (the sharpest turn in that stretch), so a hairpin can be drawn as a V.
@@ -121,9 +121,9 @@ the node picker rewrites on every save (an open editor picks up the change by it
   or for *All of* the road.
 - **Tiers**: every road is in one of six tiers, each with its own line width:
   1. *Highway* (thickest): corridors (Hwy 17, Hwy 1) by default
-  2. *Main road*: colored, thicker, larger labels. By default a road spanning 3+ edges and 5+ km
-  3. *Secondary road*: colored, a little thinner. Only roads you put there
-  4. *Connector*: thin gray roads that go somewhere
+  2. *Main road*: thicker, larger labels. By default a road spanning 3+ edges and 5+ km
+  3. *Secondary road*: a little thinner. Only roads you put there
+  4. *Connector*: thin roads that go somewhere
   5. *Back road*: roads that go through, but only in the literal sense (sketchy, but maybe a way out;
      local roads are no use in an emergency): narrow, for the
      people who live along them and as a way out in an emergency (Morrell Rd, Jarvis Rd). Only set by
@@ -132,10 +132,14 @@ the node picker rewrites on every save (an open editor picks up the change by it
      that don't go anywhere (dead ends, and loops back to the same junction, see *Zoom levels*);
      put others here by hand (Timber Lodge Rd)
 
-  Tiers 1–3 are the colored lines; 4 is a thin gray line; 5 (back roads) are gray dashes and 6 (local
-  roads) gray dots, like stubs: dotted means it goes nowhere. Both hide when zoomed out. Click a line to put its road in another tier (or back to
-  *Automatic*), and set its color and the label shown on the map. The *Lines* list in the sidebar
-  shows the highways, main roads and anything set by hand: ✕ moves a colored road down to a
+  The color shows the tier, not the road: one blue, strongest for highways and fading toward
+  blue-gray for local roads (`--t1` … `--t6` in `site/style.css` and the editor's `style.css`, with
+  their own dark-mode values, where highways are nearly white). 5 (back roads) are dashes and 6
+  (local roads) dots, like stubs: dotted means it goes nowhere. Both hide when zoomed out. Solid
+  lines are named in their own color, dashed and dotted ones in gray. Click a line to put its road
+  in another tier (or back to *Automatic*), and set the label shown on the map. A stretch with its
+  own tier takes that tier's color. The *Lines* list in the sidebar
+  shows the highways, main roads and anything set by hand: ✕ moves a main road down to a
   connector, or puts a hand-set road back to automatic; *Make another road a main road…* promotes one.
   A single stretch can have its own tier (*Tier, for just this stretch* in the line's popup), for a road
   that matters on one side of a junction and not the other: Aldercroft Heights Rd is a connector into
@@ -268,7 +272,7 @@ in both tools:
 |---|---|
 | `data/graph.json` | Editing state, the source of truth. Small and diff-friendly. |
 | `data/graph-derived.json` | Derived nodes, edges, corridor spines and station access, rewritten on every save |
-| `data/layout.json` | Layout editor state: node positions, pins, bends, road colors |
+| `data/layout.json` | Layout editor state: node positions, pins, bends, road tiers and labels |
 | `data/layout-derived.json` | Per-edge anchors for the real ↔ schematic transform, styles, exits and branches |
 | `data/layout-g35.json`, `-derived.json` | The same for a neighborhood's own map (the area group `g35`) |
 | `data/slugs.json` | Every link name the public map has handed out (written by `scripts/build-site.mjs`) |

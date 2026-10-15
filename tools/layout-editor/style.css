@@ -14,18 +14,22 @@
   --node-fill: #ffffff;
   --node-stroke: #1d1d1b;
   --halo: #fbfbf9;
+  /* Roads, by tier: the same as the public map's (site/style.css). */
+  --t1: #0c2463; --t2: #2c64d0; --t3: #82a8e4; --t4: #8a95a6; --t5: #9ea6b3; --t6: #b1b7c0;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #161615; --panel: #1f1f1d; --text: #ecebe6; --muted: #9c9b94;
     --line: #34332f; --accent: #5aa4f0; --danger: #ef6b6b; --ok: #66bb6a; --warn: #f0a640; --hover: #2a2a27;
     --canvas: #121211; --gridc: #2e2d2a; --node-fill: #121211; --node-stroke: #ecebe6; --halo: #121211;
+    --t1: #dce7ff; --t2: #679bf5; --t3: #4b6ba9; --t4: #465d86; --t5: #565d68; --t6: #4a5059;
   }
 }
 :root[data-theme="dark"] {
   --bg: #161615; --panel: #1f1f1d; --text: #ecebe6; --muted: #9c9b94;
   --line: #34332f; --accent: #5aa4f0; --danger: #ef6b6b; --ok: #66bb6a; --warn: #f0a640; --hover: #2a2a27;
   --canvas: #121211; --gridc: #2e2d2a; --node-fill: #121211; --node-stroke: #ecebe6; --halo: #121211;
+  --t1: #dce7ff; --t2: #679bf5; --t3: #4b6ba9; --t4: #465d86; --t5: #565d68; --t6: #4a5059;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
@@ -92,7 +96,6 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 #sides .issue .at { color: var(--muted); font-size: 12px; }
 #selInfo .swatches { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
 #selInfo .sw { width: 20px; height: 20px; border-radius: 50%; padding: 0; border: 2px solid transparent; }
-#selInfo .sw.on { border-color: var(--text); }
 #selInfo input[type=text] { font: inherit; font-size: 13px; width: 100%; padding: 4px 6px; margin: 2px 0 6px;
   background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 5px; }
 #selInfo .field { font-size: 12px; color: var(--muted); margin-top: 8px; }

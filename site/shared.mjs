@@ -5,9 +5,11 @@
 // Coordinates are map units (meters in the layout's plane, y down); k is map units per screen pixel.
 
 // Line widths in pixels for each tier of road (1 highway, 2 main road, 3 secondary road, 4 connector,
-// 5 back road, 6 local road); the first three are colored, the rest MINOR gray.
+// 5 back road, 6 local road).
 export const TIER_W = [7, 5.5, 4.2, 3, 2.6, 2.6];
 export const MINOR = '#a3a29b';
+// Each tier's color, from --t1 … --t6 in the stylesheets, so it follows light and dark mode.
+export const tierColor = (t) => `var(--t${t})`;
 // Side roads closer together than BUNCH_PX on screen are bunched into a branch BUNCH_LEN long.
 export const BUNCH_PX = 24, BUNCH_LEN = 20;
 // A place's badge: radius, and its gap from the line's edge, in pixels.

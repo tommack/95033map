@@ -1,7 +1,7 @@
 import {
   esc, lerp, dist, fmt, pathLen, overlaps, segProject, anchorsAt, anchorsProject,
   chevrons as chevronSize, chevronSvg, tipText, areaSvg, placeSpot, placeBadge, bunchSideRoads, bunchBranch,
-  TIER_W, MINOR as MINOR_COLOR, BUNCH_PX,
+  TIER_W, MINOR as MINOR_COLOR, BUNCH_PX, tierColor,
 } from '../../site/shared.mjs';
 import { placeKind } from '../place-kinds.mjs';
 
@@ -21,7 +21,6 @@ const OCT = Math.PI / 4;
 // The direction step drags snap to and the off-angle check uses (Straighten always uses 45°).
 const angStep = () => settings.angleStep === 22.5 ? OCT / 2 : OCT;
 // Major roads get a color of their own; everything else is a thin neutral line.
-const MAJOR_PALETTE = ['#2e9d4f', '#d98200', '#7b3fa0', '#00939c', '#c2185b', '#6d4c41', '#3f51b5', '#7c9a2a', '#e8590c', '#5d7a8c'];
 const CORRIDOR_COLORS = ['#d32f2f', '#1976d2', '#7b1fa2', '#00796b'];
 const OPEN_COLOR = '#e6007e';
 const PRIVATE_COLOR = '#d93025';   // private roads (Ida Dr): red dashes, whatever their tier
@@ -336,26 +335,20 @@ function branchTier(e) {
 
 function computeRoadStyles() {
   roadStyles = new Map();
-  const used = new Set(Object.values(roadPrefs).map(p => p.color).filter(Boolean));
   const names = [...G.roads.keys()].sort((a, b) => G.roads.get(b).len - G.roads.get(a).len);
   for (const name of names) {
     const st = G.roads.get(name), pref = roadPrefs[name] || {};
     const hand = tierNum(pref.tier);
     const major = hand ? hand <= COLORED : pref.major ?? defaultMajor(st);
     const tier = hand || (major ? (st.corridor ? 1 : 2) : CONNECTOR);
-    let color = pref.color;
-    if (!color && st.corridor) color = st.corridor;
-    if (!color && major) {
-      color = MAJOR_PALETTE.find(c => !used.has(c)) || MAJOR_PALETTE[used.size % MAJOR_PALETTE.length];
-      used.add(color);
-      roadPrefs[name] = { ...pref, color };
-    }
-    roadStyles.set(name, { major, tier, byHand: !!hand, color: major ? color : MINOR_COLOR, private: !!pref.private });
+    roadStyles.set(name, { major, tier, byHand: !!hand, color: tierColor(tier), private: !!pref.private });
   }
   renderLines();
 }
 
-const roadStyle = (e) => roadStyles.get(e.road) || { major: false, tier: CONNECTOR, color: MINOR_COLOR };
+const roadStyle = (e) => roadStyles.get(e.road) || { major: false, tier: CONNECTOR, color: tierColor(CONNECTOR) };
+// Lines are colored by their own tier (a stretch can differ from its road), like the public map.
+const edgeColor = (e) => tierColor(edgeTier(e));
 
 // Point on the real road at fraction t.
 function realAt(e, t) {
@@ -1221,7 +1214,7 @@ function render() {
     const plainLine = !stub && (!e.tip || e.tip === 'branch') && !isThrough(e) && !st.private;
     const back = plainLine && edgeTier(e) === BACK_ROAD, dots = stub || (plainLine && edgeTier(e) === DEAD_END);
     const dash = back ? ` stroke-dasharray="${w * 2.2} ${w * 1.5}"` : st.private ? ` stroke-dasharray="${Math.max(w * 2, 6 * k)} ${Math.max(w * 1.3, 4 * k)}"` : dots ? ` stroke-dasharray="0 ${Math.max(w * 2, 4 * k)}"` : '';
-    const line = `<path d="${d}" fill="none" stroke="${st.private ? PRIVATE_COLOR : st.color}" stroke-width="${st.private ? Math.max(w, 3 * k) : w}" stroke-linecap="${dots ? 'round' : e.tip || isThrough(e) || st.private || back ? 'butt' : 'round'}" stroke-linejoin="round"${dash}${faint((coarse && lod.edges.has(i)) || bunch.edges.has(i))}/>`;
+    const line = `<path d="${d}" fill="none" stroke="${st.private ? PRIVATE_COLOR : edgeColor(e)}" stroke-width="${st.private ? Math.max(w, 3 * k) : w}" stroke-linecap="${dots ? 'round' : e.tip || isThrough(e) || st.private || back ? 'butt' : 'round'}" stroke-linejoin="round"${dash}${faint((coarse && lod.edges.has(i)) || bunch.edges.has(i))}/>`;
     if (st.major) majorLines += line; else lines += line;
     if (morph === 1) {
       for (let j = 1; j < pts.length; j++) {
@@ -1260,7 +1253,7 @@ function render() {
     if (n.tip) {
       // Map exit: chevrons, like a road that runs off the map. Branch: a terminus bar.
       const e = G.edges[G.incident.get(id)[0]], [ux, uy] = tipDir(id);
-      const col = roadStyle(e).color, w = lineWidth(e) * k;
+      const col = edgeColor(e), w = lineWidth(e) * k;
       if (sel) nodesSvg += `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${12 * k}" fill="var(--accent)" fill-opacity=".3"/>`;
       if (n.tip === 'exit') {
         nodesSvg += chevronSvg(x, y, ux, uy, chevrons(e, k), col);
@@ -1293,7 +1286,7 @@ function render() {
         // A squiggle across the line's end, as on the public map.
         const bx = x + ux * g, by = y + uy * g, A = H * 0.6;
         nodesSvg += `<path d="M${fmt(bx - uy * H)} ${fmt(by + ux * H)}Q${fmt(bx - uy * H / 2 + ux * A)} ${fmt(by + ux * H / 2 + uy * A)} ${fmt(bx)} ${fmt(by)}` +
-          `Q${fmt(bx + uy * H / 2 - ux * A)} ${fmt(by - ux * H / 2 - uy * A)} ${fmt(bx + uy * H)} ${fmt(by - ux * H)}" fill="none" stroke="${roadStyle(e).color}" stroke-width="${Math.max(w, 1.5 * k)}" stroke-linecap="round" pointer-events="none"/>`;
+          `Q${fmt(bx + uy * H / 2 - ux * A)} ${fmt(by - ux * H / 2 - uy * A)} ${fmt(bx + uy * H)} ${fmt(by - ux * H)}" fill="none" stroke="${edgeColor(e)}" stroke-width="${Math.max(w, 1.5 * k)}" stroke-linecap="round" pointer-events="none"/>`;
       }
       placed.push({ x0: x - g, y0: y - g, x1: x + g, y1: y + g });
       return;
@@ -1318,7 +1311,7 @@ function render() {
       // Road continues off the map: chevrons past the end of the line.
       const e = throughEdge(id), [ux, uy] = tipDir(id), c = chevrons(e, k);
       if (sel) nodesSvg += `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${12 * k}" fill="var(--accent)" fill-opacity=".3"/>`;
-      nodesSvg += chevronSvg(x, y, ux, uy, c, roadStyle(e).color);
+      nodesSvg += chevronSvg(x, y, ux, uy, c, edgeColor(e));
       nodesSvg += `<circle class="handle" data-n="${esc(id)}" cx="${fmt(x)}" cy="${fmt(y)}" r="${10 * k}" fill="transparent"/>`;
       return;
     }
@@ -1775,7 +1768,6 @@ function roadLabels(k, placed, skip, bunches = []) {
   cands.sort((u, v) => (v.major - u.major) || (v.len - u.len));
   const byName = new Map();
   for (const c of cands) {
-    const st = roadStyle(c.e);
     const fs = (c.major ? 13 : 10.5) * k;
     if (/^\(.*\)$/.test(c.e.road)) continue;   // placeholders like "(unclassified)"
     const text = roadText(c.e.road);
@@ -1801,7 +1793,8 @@ function roadLabels(k, placed, skip, bunches = []) {
     placed.push(spot.box);
     if (!byName.has(c.e.road)) byName.set(c.e.road, []);
     byName.get(c.e.road).push(mid);
-    const fill = c.major ? st.color : 'var(--muted)';
+    // Solid lines (connectors and up) are named in their own color; dashed and dotted ones in gray.
+    const fill = c.major || edgeTier(c.e) < BACK_ROAD ? edgeColor(c.e) : 'var(--muted)';
     out += `<text transform="translate(${fmt(spot.cx)} ${fmt(spot.cy)}) rotate(${(ang * 180 / Math.PI).toFixed(1)})" text-anchor="middle" dy="0.35em" font-size="${fs}"${c.major ? ' font-weight="600"' : ''} fill="${fill}" stroke="var(--halo)" stroke-width="${3 * k}" paint-order="stroke" pointer-events="none">${esc(text)}</text>`;
   }
   // Exits and branches first: their labels say where the line goes, so they matter most.
@@ -1811,7 +1804,7 @@ function roadLabels(k, placed, skip, bunches = []) {
       // Like a road that runs off the map: its name, then where it goes.
       const e = G.edges[G.incident.get(n.id)[0]], name = !e || /^\(.*\)$/.test(e.road || '(') ? null : roadText(e.road);
       const lines = [...(name ? [name] : []), ...(n.group.label ? [[n.group.label, 'font-weight="400" font-size="' + 9.5 * k + '" fill="var(--muted)"']] : [])];
-      if (lines.length) out += tipLabel(n.id, lines, 11 * k, k, placed, `font-weight="600" fill="${e ? roadStyle(e).color : 'var(--text)'}"`);
+      if (lines.length) out += tipLabel(n.id, lines, 11 * k, k, placed, `font-weight="600" fill="${e ? edgeColor(e) : 'var(--text)'}"`);
       continue;
     }
     const lines = n.group.label.split(/\s*,\s*/).filter(Boolean).map(shortName);
@@ -1827,7 +1820,7 @@ function roadLabels(k, placed, skip, bunches = []) {
     const end = openEnd(e), dest = ends[end]?.label;
     const name = /^\(.*\)$/.test(e.road || '(') ? null : roadText(e.road);
     const lines = [...(name ? [name] : []), ...(dest ? [[dest, 'font-weight="400" font-size="' + 9.5 * k + '" fill="var(--muted)"']] : [])];
-    if (lines.length) out += tipLabel(end, lines, 11 * k, k, placed, `font-weight="600" fill="${roadStyle(e).color}"`);
+    if (lines.length) out += tipLabel(end, lines, 11 * k, k, placed, `font-weight="600" fill="${edgeColor(e)}"`);
   }
   for (const e of G.edges) {
     if (!isStub(e) || !e.road || /^\(.*\)$/.test(e.road) || gone(e)) continue;
@@ -2113,7 +2106,7 @@ function renderSel() {
     const e = G.edges[selEdge], list = bends.get(e.key) || [];
     const nm = (id) => esc(G.nodes.get(id).tip ? G.nodes.get(id).group.label : G.nodes.get(id).name);
     const chord = dist(e.coords[0], e.coords[e.coords.length - 1]);
-    const st = roadStyle(e), rs = G.roads.get(e.road);
+    const rs = G.roads.get(e.road);
     const others = e.roads.filter(r => r && r !== e.road);
     // Lines it could be drawn as part of: those meeting it at either end, then the other majors.
     const joinable = e.ownRoad ? [] : [...new Set([
@@ -2126,7 +2119,6 @@ function renderSel() {
       <div class="field">Tier, for just this stretch</div>
       <select id="selStretchTier"><option value="">Same as the road</option>${TIERS.map(([id, t], i) => `<option value="${id}"${stretchTier(e) === i + 1 ? ' selected' : ''}>${i + 1} · ${t}</option>`).join('')}</select>
       <label title="Drawn as a red dashed line; the public map says it isn't open to the public"><input type="checkbox" id="selPrivate"${roadPrefs[e.road]?.private ? ' checked' : ''}> Private road (not open to the public)</label>
-      ${st.major ? `<div class="swatches">${MAJOR_PALETTE.map(c => `<button class="sw${c === st.color ? ' on' : ''}" data-c="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div>` : ''}
       <div class="field">Label on the map</div>
       <input type="text" id="selRoadLabel" placeholder="${esc(shortName(e.road))}" value="${esc(roadPrefs[e.road]?.label || '')}">
       ${e.ownRoad ? `<div class="field">${e.stretch ? `This stretch of ${esc(roadText(e.ownRoad))} is` : `${esc(roadText(e.ownRoad))} is`} drawn as part of this line</div>
@@ -2166,7 +2158,6 @@ function renderSel() {
         if (Object.keys(p).length) roadPrefs[e.road] = p; else delete roadPrefs[e.road];
         computeRoadStyles(); markDirty(); render(); renderSel();
       };
-      el.querySelectorAll('.sw').forEach(b => b.onclick = () => setPref({ color: b.dataset.c }));
       $('selRoadLabel').onchange = (ev) => setPref({ label: ev.target.value.trim() });
       // A stretch includes its twin when a divided road is two lines between the same junctions.
       const twins = G.edges.filter(x => (x.ownRoad || x.road) === (e.ownRoad || e.road) &&
@@ -2942,13 +2933,13 @@ function initMini() {
 
 function refreshMini() {
   miniEdges.forEach(l => l.remove());
-  miniEdges = G.edges.map(e => L.polyline(e.src.coords, { color: roadStyle(e).color, weight: e.corridor ? 4 : roadStyle(e).major ? 3 : 2, opacity: 0.85, interactive: false }).addTo(mini));
+  miniEdges = G.edges.map(e => L.polyline(e.src.coords, { color: edgeColor(e), weight: e.corridor ? 4 : roadStyle(e).major ? 3 : 2, opacity: 0.85, interactive: false }).addTo(mini));
   // Collapsed parts of the map, faint.
   G.hidden.forEach(h => miniEdges.push(L.polyline(h.e.src.coords, { color: MINOR_COLOR, weight: 1.5, opacity: 0.6, dashArray: '3 4', interactive: false }).addTo(mini)));
 }
 
 function updateMiniColors() {
-  G.edges.forEach((e, i) => miniEdges[i]?.setStyle({ color: roadStyle(e).color, weight: e.corridor ? 4 : roadStyle(e).major ? 3 : 2 }));
+  G.edges.forEach((e, i) => miniEdges[i]?.setStyle({ color: edgeColor(e), weight: e.corridor ? 4 : roadStyle(e).major ? 3 : 2 }));
 }
 
 function showLink(r, fromSchematic) {
@@ -3056,6 +3047,7 @@ function applyState(s) {
   // The graph depends on which parts are collapsed and which roads are drawn as part of
   // another line; rebuild it only when those change.
   roadPrefs = JSON.parse(JSON.stringify(s.roads || {}));
+  for (const p of Object.values(roadPrefs)) delete p.color;   // roads were once colored one by one
   lineOf = { ...(s.lineOf || {}) };
   circles = { ...(s.circles || {}) };
   loops = JSON.parse(JSON.stringify(s.loops || {}));
@@ -3114,7 +3106,7 @@ const DERIVED_VERSION = 3;   // 3: a collapsed branch's tier is its most importa
 function derivedObj() {
   const styles = {};
   const lod = deadEnds(), local = deadEnds(false);
-  for (const [name, st] of roadStyles) styles[name] = { major: st.major, tier: st.tier, color: st.color, label: roadPrefs[name]?.label || undefined, corridor: G.roads.get(name)?.corridor ? true : undefined, private: st.private || undefined };
+  for (const [name, st] of roadStyles) styles[name] = { major: st.major, tier: st.tier, label: roadPrefs[name]?.label || undefined, corridor: G.roads.get(name)?.corridor ? true : undefined, private: st.private || undefined };
   return {
     version: DERIVED_VERSION,
     generatedAt: new Date().toISOString(),

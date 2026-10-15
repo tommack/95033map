@@ -17,8 +17,6 @@
 // reused. If the graph changes so an edge disappears, its slug is "retired" with a copy of
 // its real geometry, and old links resolve to the same spot on whatever road is there now.
 
-import { MINOR } from './shared.mjs';
-
 export const MAP_VERSION = 1;
 
 // The layout editor's stable edge key (see buildGraph in tools/layout-editor): each end is
@@ -214,7 +212,7 @@ export function buildMap(graph, layout, slugsIn = null, { live: liveElsewhere = 
   for (const e of edges) {
     if (!e.road || roads[e.road]) continue;
     const st = layout.roads?.[e.road] || {};
-    roads[e.road] = { color: st.color || MINOR, major: !!st.major, ...(st.tier ? { tier: st.tier } : {}), ...(st.label ? { label: st.label } : {}), ...(st.corridor ? { corridor: true } : {}), ...(st.private ? { private: true } : {}) };
+    roads[e.road] = { major: !!st.major, ...(st.tier ? { tier: st.tier } : {}), ...(st.label ? { label: st.label } : {}), ...(st.corridor ? { corridor: true } : {}), ...(st.private ? { private: true } : {}) };
   }
 
   // Places (shops, schools…) on drawn lines: e is the line's index, t how far along its real road, side

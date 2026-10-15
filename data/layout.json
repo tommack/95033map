@@ -1,6 +1,6 @@
 {
- "rev": 1945,
- "savedAt": "2026-10-14T05:47:31.707Z",
+ "rev": 1951,
+ "savedAt": "2026-10-15T07:03:47.883Z",
  "state": {
   "version": 1,
   "settings": {
@@ -12,70 +12,46 @@
   },
   "roads": {
    "Bear Creek Road": {
-    "color": "#2e9d4f",
     "tier": "secondary"
    },
-   "Soquel San Jose Road": {
-    "color": "#d98200"
-   },
-   "Skyline Boulevard": {
-    "color": "#7b3fa0"
-   },
+   "Soquel San Jose Road": {},
+   "Skyline Boulevard": {},
    "Old Santa Cruz Highway": {
-    "color": "#00939c",
     "tier": "secondary"
    },
-   "Summit Road": {
-    "color": "#c2185b"
-   },
+   "Summit Road": {},
    "Black Road": {
-    "color": "#6d4c41",
     "tier": "secondary"
    },
    "Upper Zayante Road": {
-    "color": "#3f51b5",
     "tier": "secondary"
    },
    "Jarvis Road": {
-    "color": "#7c9a2a",
     "tier": "backroad"
    },
    "Hwy 9": {
-    "color": "#e8590c",
     "major": true
    },
    "Porter Street": {
-    "major": true,
-    "color": "#5d7a8c"
+    "major": true
    },
    "Soquel Drive": {
-    "major": true,
-    "color": "#2e9d4f"
+    "major": true
    },
    "East Zayante Road": {
-    "color": "#2e9d4f",
     "tier": "connector"
    },
-   "River Street": {
-    "color": "#2e9d4f"
-   },
-   "Graham Hill Road": {
-    "color": "#2e9d4f"
-   },
-   "Empire Grade": {
-    "color": "#2e9d4f"
-   },
+   "River Street": {},
+   "Graham Hill Road": {},
+   "Empire Grade": {},
    "Congress Springs Road": {
     "label": "Hwy 9"
    },
    "Central Avenue": {
     "joinTo": "Hwy 9"
    },
-   "Glenwood Drive": {
-    "color": "#2e9d4f"
-   },
+   "Glenwood Drive": {},
    "Mount Hermon Road": {
-    "color": "#5d7a8c",
     "tier": 2
    },
    "CA 17 Business": {
@@ -88,20 +64,16 @@
     "tier": "deadend"
    },
    "Loma Prieta Avenue": {
-    "color": "#2e9d4f",
     "tier": "deadend"
    },
    "Bayview Drive": {
-    "tier": "connector",
-    "color": "#2e9d4f"
+    "tier": "connector"
    },
    "Madrone Drive": {
-    "tier": "secondary",
-    "color": "#2e9d4f"
+    "tier": "secondary"
    },
    "Broadway Road": {
-    "tier": "secondary",
-    "color": "#2e9d4f"
+    "tier": "secondary"
    },
    "Ida Drive": {
     "tier": "deadend",
@@ -123,8 +95,7 @@
     "tier": "backroad"
    },
    "Idylwild Road": {
-    "tier": "secondary",
-    "color": "#2e9d4f"
+    "tier": "secondary"
    },
    "Aldercroft Heights Road": {
     "tier": "connector"
@@ -153,12 +124,8 @@
    "Laurel Drive": {
     "tier": "connector"
    },
-   "Mountain Charlie Road": {
-    "color": "#2e9d4f"
-   },
-   "Branciforte Drive": {
-    "color": "#00939c"
-   },
+   "Mountain Charlie Road": {},
+   "Branciforte Drive": {},
    "(residential)": {
     "label": "Old Mill Pond Rd"
    },
@@ -173,20 +140,16 @@
     "tier": "backroad"
    },
    "Granite Creek Road": {
-    "tier": "secondary",
-    "color": "#2e9d4f"
+    "tier": "secondary"
    },
    "Laurel Glen Road": {
-    "tier": "secondary",
-    "color": "#2e9d4f"
+    "tier": "secondary"
    },
    "Mountain View Road": {
-    "tier": "secondary",
-    "color": "#5d7a8c"
+    "tier": "secondary"
    },
    "Vine Hill Road": {
-    "tier": "secondary",
-    "color": "#7b3fa0"
+    "tier": "secondary"
    }
   },
   "groups": [
@@ -904,7 +867,9 @@
    "65430513/4010337209|65584944/4010337200": "deadend",
    "91050590/12432781387|91063847/813244686": "backroad",
    "10926015110/65669395|65592892/12871097638": "deadend",
-   "413773504/8436588392|open:12438272780/12438272781": "deadend"
+   "413773504/8436588392|open:12438272780/12438272781": "deadend",
+   "91087135/366731019|91103276/2334462918": "backroad",
+   "91103276/13315766231|9533926856/8301434466": "backroad"
   },
   "places": [
    {
