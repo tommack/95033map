@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "generated": "2026-10-20T12:00:00Z",
+  "note": "Made up, for trying the map with ?feed=sample. The map moves these times so the feed was made just now.",
+  "items": [
+    {
+      "id": "sample-1", "emoji": "🪵", "slug": "mountain-charlie-rd-3", "t": 0.1,
+      "title": "Tree down on Mountain Charlie", "summary": "Branches blocking one lane just past Summit Rd. The county has been called.",
+      "since": "2026-10-20T11:20:00Z", "updated": "2026-10-20T11:45:00Z", "expires": "2026-10-21T11:20:00Z",
+      "status": "active", "sure": true
+    },
+    {
+      "id": "sample-2", "emoji": "🦌", "slug": "summit-rd-11", "t": 0,
+      "title": "Injured deer at Summit and Morrell", "summary": "A deer with a hurt leg by the side of the road. Drive slowly.",
+      "since": "2026-10-20T02:00:00Z", "updated": "2026-10-20T02:00:00Z", "expires": "2026-10-20T14:00:00Z",
+      "status": "active", "sure": true
+    },
+    {
+      "id": "sample-3", "emoji": "🐕", "slug": "spanish-ranch-rd-1", "t": 0.5,
+      "title": "Loose dog on Spanish Ranch", "summary": "A small brown and white dog, maybe a beagle, seen running toward the canyon.",
+      "since": "2026-10-20T09:00:00Z", "updated": "2026-10-20T09:00:00Z", "expires": "2026-10-21T09:00:00Z",
+      "status": "active", "sure": false
+    },
+    {
+      "id": "sample-4", "emoji": "🚧", "slug": "summit-rd-23", "t": 0.5,
+      "title": "Summit Rd one lane at a time", "summary": "Traffic control between Hwy 17 and Old Santa Cruz Hwy. About a 10 minute wait.",
+      "since": "2026-10-20T07:00:00Z", "updated": "2026-10-20T10:30:00Z", "expires": "2026-10-20T13:00:00Z",
+      "status": "cleared", "sure": true
+    }
+  ]
+}

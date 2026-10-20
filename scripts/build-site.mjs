@@ -12,6 +12,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildAll } from '../site/build-map.mjs';
+import { buildRecentPage } from './build-recent-page.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = process.env.SAVE_DIR ? path.resolve(process.env.SAVE_DIR) : path.join(ROOT, 'data');
@@ -43,6 +44,8 @@ for (const [slug, m] of Object.entries(areas)) await fs.writeFile(path.join(area
 // One link per line, so the file diffs well.
 const block = (o) => '{\n' + Object.entries(o).map(([k, v]) => `  ${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(',\n') + '\n }';
 await fs.writeFile(slugFile, `{\n "version": ${slugs.version},\n "edges": ${block(slugs.edges)},\n "nodes": ${block(slugs.nodes)}\n}\n`);
+
+await buildRecentPage();
 
 for (const w of new Set(warnings)) console.warn('warning:', w);
 if (warnings.length && process.argv.includes('--strict')) process.exitCode = 1;

@@ -13,3 +13,4 @@ data/osm_raw_south.json
 
 # Built by scripts/build-site.mjs (npm run build) from the editors' files
 site/data/
+site/recent/

@@ -31,14 +31,16 @@ let M = null;              // the map, prepared (see prepare)
 let view = { x: 0, y: 0, w: 1000, h: 1000 };
 let sel = null;            // what the card shows: { type: 'edge', e, t } | { type: 'node', n } | { type: 'pin', pin } | { type: 'me' }
 let picks = [];            // the highlighted lines and junctions (shift-click adds); t is where a line was tapped, not in the link
-let pins = [];             // emoji placed on the map: { emoji, e, t }
+let pins = [];             // emoji placed on the map: { emoji, e, t }, and recent reports (report: true, see loadReports)
 let adding = false;        // "Add another road": taps add to picks (for phones, which have no shift key)
 // Putting an emoji on the map: sel is { type: 'place', at } (see startPlacing).
 let me = null;             // { lat, lon, acc, loc } while location is on
 let morph = 1;             // 1 = the schematic, 0 = real geography (the slider)
 
 // ---------- data ----------
+// Data paths are relative to this file, not the page, so the map also works from /recent/.
 async function fetchJSON(url) {
+  url = new URL(url, import.meta.url);
   const r = await fetch(url, { cache: LIVE ? 'no-store' : 'default' });
   if (!r.ok) { r.body?.cancel(); throw new Error(`${url}: HTTP ${r.status}`); }
   return r.json();
@@ -653,11 +655,13 @@ const PIN_R = 18, PIN_UP = 29, SWAY_S = 2.6;
 function pinSvg(q, k) {
   const [x, y] = pinAt(q, k), on = sel?.pin === q, r = PIN_R * k, [px, py] = pinSpot(q);
   const ink = on ? 'var(--accent)' : 'var(--node-stroke)', tip = y + r + 8 * k, delay = -(performance.now() / 1000 % (SWAY_S * 2));
-  return (pinNode(q) ? '' : `<circle cx="${fmt(px)}" cy="${fmt(py)}" r="${4 * k}" fill="${ink}" stroke="var(--card)" stroke-width="${1.5 * k}"/>`) +
+  // A report fades as it gets old, and has a dashed ring when its spot is a guess.
+  const fade = q.report && !on ? ` opacity="${reportOpacity(q)}"` : '', dash = q.report && !q.sure ? ` stroke-dasharray="${fmt(5 * k)} ${fmt(3.5 * k)}"` : '';
+  return `<g${fade}>` + (pinNode(q) ? '' : `<circle cx="${fmt(px)}" cy="${fmt(py)}" r="${4 * k}" fill="${ink}" stroke="var(--card)" stroke-width="${1.5 * k}"/>`) +
     `<g transform="translate(${fmt(x)} ${fmt(tip)})"><g class="sway" style="animation-delay:${delay.toFixed(2)}s">` +
     `<path d="M${fmt(-7 * k)} ${fmt(-11 * k)}L0 0L${fmt(7 * k)} ${fmt(-11 * k)}Z" fill="${ink}"/>` +
-    `<circle cy="${fmt(y - tip)}" r="${r}" fill="var(--card)" stroke="${ink}" stroke-width="${2.5 * k}"/>` +
-    `<text y="${fmt(y - tip)}" dy="0.36em" text-anchor="middle" font-size="${21 * k}" class="emo">${esc(q.emoji)}</text></g></g>`;
+    `<circle cy="${fmt(y - tip)}" r="${r}" fill="var(--card)" stroke="${ink}" stroke-width="${2.5 * k}"${dash}/>` +
+    `<text y="${fmt(y - tip)}" dy="0.36em" text-anchor="middle" font-size="${21 * k}" class="emo">${esc(q.emoji)}</text></g></g></g>`;
 }
 function drawMarks(k = upp()) {
   // Lines are highlighted in two groups, each see-through as a whole, so they don't darken where they meet.
@@ -1076,6 +1080,9 @@ function meCard() {
 // Emoji for marking a spot. Anything else can be typed into "Other".
 const EMOJI = [['🪵', 'Tree down'], ['💥', 'Crash'], ['🚧', 'Road closed'], ['⚡', 'Power line down'],
   ['🌊', 'Flooding'], ['🪨', 'Rocks or slide'], ['🔥', 'Fire'], ['⚠️', 'Hazard']];
+// Names for emoji that aren't in the picker but are common enough to deserve one.
+const EMOJI_NAMES = [...EMOJI, ['🌳', 'Tree down'], ['🌲', 'Tree down'], ['🦌', 'Animal on the road'],
+  ['🐕', 'Loose or lost dog'], ['🐈', 'Loose or lost cat'], ['🐎', 'Loose horse'], ['🐄', 'Loose livestock']];
 // One emoji (one grapheme, which may be several code points: ⚠️, flags, 🧑‍🚒), or null.
 function cleanEmoji(v) {
   v = String(v ?? '').trim();
@@ -1085,9 +1092,9 @@ function cleanEmoji(v) {
 }
 const pickName = (p) => (p.type === 'edge' ? roadText(p.e.road) || 'Unnamed road'
   : p.n.kind ? p.n.label || roadText(p.n.edges[0]?.road) || 'Edge of the map' : shortName(p.n.name));
-const emojiName = (e) => EMOJI.find(([x]) => x === e)?.[1];
+const emojiName = (e) => EMOJI_NAMES.find(([x]) => x === e)?.[1];
 function stateTitle() {
-  const roads = [...new Set(picks.map(pickName))], marks = pins.map((q) => `${q.emoji} ${roadText(q.e.road) || 'Unnamed road'}`);
+  const roads = [...new Set(picks.map(pickName))], marks = pins.filter((q) => !q.report).map((q) => `${q.emoji} ${roadText(q.e.road) || 'Unnamed road'}`);
   return [...roads, ...marks].join(', ') || '95033 Road Map';
 }
 
@@ -1147,6 +1154,7 @@ function placeEmojiPop(k) {
   pop.style.setProperty('--tail', `${clamp(sx - left, 16, w - 16)}px`);
 }
 function pinCard(q) {
+  if (q.report) return reportCard(q);
   const ll = M.U(realAt(q.e.real, q.t)), road = roadText(q.e.road) || 'Unnamed road', a = pinNode(q);
   const title = `${q.emoji} ${emojiName(q.emoji) || 'Marked'}`;
   return `<div class="kicker">Marked spot</div>
@@ -1163,6 +1171,80 @@ function poiCard(q) {
     <h2><span class="pinEmo">${esc(q.icon)}</span>${esc(q.name)}</h2>
     <div class="meta">On ${esc(road)}</div>
     ${actionsHtml([q.lat, q.lon], q.name)}`;
+}
+
+// ---------- recent reports ----------
+// 95033map.com/recent also draws the recent reports feed ("Recent reports feed" in the README): emoji
+// for what neighbors have reported lately, fading as they get old. How the feed is made isn't part of
+// this repo. ?feed=sample shows a made-up one, and ?feed=local (on localhost) a Worker running locally.
+// Nothing else can be picked, so a link can't make the map show someone else's reports.
+const RECENT = /\/recent\/?$/.test(location.pathname);
+const FEED = new URLSearchParams(location.search).get('feed') === 'sample' ? 'recent-sample.json'
+  : new URLSearchParams(location.search).get('feed') === 'local' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://127.0.0.1:8787/v1/recent.json'
+    : 'https://recent.95033map.com/v1/recent.json';
+const REPORT_EVERY = 2 * 60e3;
+let reportsShown = false;
+async function loadReports() {
+  // Later loads wait until the neighborhood map is closed: reports are placed on the main map.
+  if (sub) return;
+  let f;
+  try {
+    f = await fetchJSON(FEED);
+    if (f?.version !== 1 || !Array.isArray(f.items)) throw new Error('not a version 1 feed');
+  } catch (e) {
+    console.warn('recent reports', e);
+    if (!reportsShown) toast('Couldn\'t load recent reports', 4000);
+    return;
+  }
+  // The sample's times are made up: move them so it was made just now.
+  const shift = FEED === 'recent-sample.json' ? Date.now() - Date.parse(f.generated) : 0, at = (s) => Date.parse(s) + shift;
+  const list = f.items.flatMap((it) => {
+    const emoji = cleanEmoji(it.emoji), spot = emoji && lineFor(String(it.slug), clamp(Number(it.t) || 0, 0, 1), {});
+    const since = at(it.since), expires = at(it.expires);
+    if (!spot || !Number.isFinite(since) || !Number.isFinite(expires)) return [];
+    return [{
+      report: true, id: String(it.id), emoji, ...spot,
+      title: String(it.title || emojiName(emoji) || 'Report').slice(0, 80), summary: String(it.summary || '').slice(0, 280),
+      since, updated: at(it.updated) || since, expires, cleared: it.status === 'cleared', sure: it.sure !== false,
+    }];
+  });
+  const was = sel?.pin?.report && sel.pin.id;
+  pins = [...pins.filter((q) => !q.report), ...list];
+  if (was) sel = list.find((q) => q.id === was) ? { type: 'pin', pin: list.find((q) => q.id === was) } : null;
+  if (!reportsShown) {
+    const live = list.filter((q) => !q.cleared && q.expires > Date.now()).length;
+    toast(live ? `${live} recent report${live > 1 ? 's' : ''}` : 'Nothing reported lately', 3000);
+  }
+  reportsShown = true;
+  showCard(); drawMarks();
+}
+function startReports() {
+  loadReports();
+  setInterval(() => document.visibilityState === 'visible' && loadReports(), REPORT_EVERY);
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && loadReports());
+}
+// Fully there for the first half of its time, then fading to half; faint once it's cleared or expired.
+function reportOpacity(q, now = Date.now()) {
+  if (q.cleared || now >= q.expires) return 0.35;
+  const f = (now - q.since) / Math.max(1, q.expires - q.since);
+  return fmt(1 - 0.5 * clamp((f - 0.5) / 0.5, 0, 1));
+}
+function ago(t) {
+  const m = Math.round((Date.now() - t) / 60e3);
+  return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 36 * 60 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
+}
+function reportWhen(q) {
+  if (q.cleared) return `Cleared ${ago(q.updated)}`;
+  if (Date.now() >= q.expires) return `Last heard ${ago(q.updated)}`;
+  return `Reported ${ago(q.since)}${q.updated - q.since > 10 * 60e3 ? `, updated ${ago(q.updated)}` : ''}`;
+}
+function reportCard(q) {
+  const ll = M.U(realAt(q.e.real, q.t)), road = roadText(q.e.road) || 'Unnamed road', a = pinNode(q);
+  return `<div class="kicker">${esc(reportWhen(q))}</div>
+    <h2><span class="pinEmo">${esc(q.emoji)}</span>${esc(q.title)}</h2>
+    <div class="meta">${a ? `In ${esc(a.label)}` : `On ${esc(road)}`}${q.sure ? '' : ' · the spot is a guess'}</div>
+    ${q.summary ? `<p class="report">${esc(q.summary)}</p>` : ''}
+    ${actionsHtml(ll, `${q.emoji} ${q.title}`)}`;
 }
 
 function showCard() {
@@ -1200,7 +1282,7 @@ function stateHash() {
   if (lines.length) h.push(`s=${[...new Set(lines)].join(',')}`);
   if (nodes.length) h.push(`n=${nodes.join(',')}`);
   for (const ll of places) h.push(`ll=${ll}`);
-  for (const q of pins) h.push(`p=${encodeURIComponent(q.emoji)},${q.e.slug},${tStr(q.t)}`);
+  for (const q of pins) if (!q.report) h.push(`p=${encodeURIComponent(q.emoji)},${q.e.slug},${tStr(q.t)}`);
   if (sel?.type === 'poi') h.push(`f=${sel.q.slug}`);
   return h.join('&');
 }
@@ -1362,8 +1444,8 @@ function applyHash(h) {
   if (!boxes.length) return false;
   // A local road with "Hide local roads" on: show local roads again.
   if (hideLocal && [...newPicks.map((p) => p.e || p.n), ...newPins.map((q) => q.e)].some((x) => x?.local)) setHideLocal(false);
-  picks = newPicks; pins = newPins; adding = false;
-  sel = poi || picks[0] || { type: 'pin', pin: pins[0] };
+  picks = newPicks; pins = [...newPins, ...pins.filter((q) => q.report)]; adding = false;
+  sel = poi || picks[0] || { type: 'pin', pin: newPins[0] };
   writeHash();
   showCard(); drawMarks();
   if (boxes.length === 1) {
@@ -1548,7 +1630,7 @@ function hitAt(p, k, tol) {
 // Phones have the card only.
 let hoverEv = null, hoverRaf = 0;
 function tipFor(h) {
-  if (h.type === 'pin') return [`${h.pin.emoji} ${emojiName(h.pin.emoji) || 'Marked spot'}`];
+  if (h.type === 'pin') return h.pin.report ? [`${h.pin.emoji} ${h.pin.title}`, reportWhen(h.pin)] : [`${h.pin.emoji} ${emojiName(h.pin.emoji) || 'Marked spot'}`];
   if (h.type === 'me') return ['Your location'];
   if (h.type === 'poi') return [`${h.q.icon} ${h.q.name}`, h.q.type];
   if (h.type === 'bunch') {
@@ -2002,6 +2084,7 @@ if (LIVE && 'BroadcastChannel' in window) {
   // A link to a neighborhood's map: the main map behind it, whole.
   if (new URLSearchParams(location.hash.slice(1)).has('a')) fitTo(M.bounds);
   if (!openHash()) fitTo(M.bounds);
+  if (RECENT) startReports();
   window.subwayFocus = focusApi;   // the tools shell waits for this
   window.subwayMap = { get M() { return M; }, locate, select, get view() { return view; }, get hidden() { return { stubs: new Set([...stubEdges()].filter((e) => !stubShow.has(e))), bunched: bunchHide }; } };
 })();

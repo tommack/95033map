@@ -360,7 +360,8 @@ The address bar always holds the link to what's on the map, so it can be copied 
   bunched side roads, neighborhoods and the map's edges get a tooltip with their name.
 - **Emoji:** the pin button (above the location button) puts an emoji on the map: tap it, tap the road
   where it goes, and pick one in the popup that opens right there (tree down, crash, road closed, power
-  line down, flooding, rocks or slide, fire, hazard, or any emoji typed into *Other*). Tapping another
+  line down, flooding, rocks or slide, fire, hazard, or any emoji typed into *Other*; a few typed ones
+  also get a name, like 🦌 animal on the road and 🐕 loose or lost dog). Tapping another
   spot first moves it; ×, Esc or the pin button again cancels. Your location's card can also put one where you are.
   Emoji stay when the highlights are cleared; tap one to change it or remove it. Each sways gently
   from its point so it's hard to miss (held still if the device asks for reduced motion).
@@ -374,6 +375,51 @@ edge disappears after a graph change, its old links still work: they open the cl
 on whatever road is there now.
 
 Preview it in the tools' *Preview* tab (built live from the editors' files).
+
+### Recent reports feed
+
+95033map.com/recent is the same map with what neighbors have reported lately: an emoji for each report
+(a tree down, a closure, a loose dog), with its title and a short summary in its card. Reports fade
+in the second half of their time and stay faint for a while once they're cleared or expired. A
+dashed ring means the spot is a guess (the report named the road but not where on it). These pins
+aren't part of the page's link and can't be changed or removed.
+
+The page reads a feed from `https://recent.95033map.com/v1/recent.json`. This repo only reads it;
+the feed is made elsewhere. To try the page without it, use `/site/recent/?feed=sample` locally
+(`site/recent-sample.json`, made up), or `?feed=local` for a feed Worker running on
+`localhost:8787`. No other feed can be picked from a link. `site/recent/index.html` is written by
+`npm run build` (scripts/build-recent-page.mjs).
+
+The feed, version 1 (anything incompatible gets a new version, and the map ignores versions it doesn't know):
+
+```json
+{
+  "version": 1,
+  "generated": "2026-10-20T05:00:00Z",
+  "items": [{
+    "id": "a3f9c2",
+    "emoji": "🪵",
+    "slug": "mountain-charlie-rd-3",
+    "t": 0.1,
+    "title": "Tree down on Mountain Charlie",
+    "summary": "Branches blocking part of the road near Summit. County notified.",
+    "since": "2026-10-07T14:25:00Z",
+    "updated": "2026-10-07T15:29:00Z",
+    "expires": "2026-10-08T14:25:00Z",
+    "status": "active",
+    "sure": true
+  }]
+}
+```
+
+- `slug` and `t`: a spot on a line, as in links (`t` from 0 at one end to 1 at the other). Retired
+  link names work as they do in links; names the map doesn't know are skipped.
+- `emoji`: one emoji. Those in the emoji list (`EMOJI_NAMES` in app.js) also get a name.
+- `title` (up to 80 characters) and `summary` (up to 280) are shown as they are. They're public: no names,
+  phone numbers or addresses.
+- `since`, `updated`, `expires`: ISO times. `status`: `active` or `cleared`. Items can stay in the
+  feed for a while after they expire or are cleared, so the map can show them fading.
+- `sure`: false when the spot along the road is a guess. Optional; true if left out.
 
 ### Publishing
 
