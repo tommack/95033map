@@ -1,6 +1,6 @@
 {
- "rev": 81,
- "savedAt": "2026-10-14T05:15:15.463Z",
+ "rev": 104,
+ "savedAt": "2026-10-17T06:43:06.503Z",
  "state": {
   "version": 1,
   "settings": {
@@ -12,16 +12,13 @@
   },
   "roads": {
    "Bayview Drive": {
-    "tier": "connector",
-    "color": "#2e9d4f"
+    "tier": "connector"
    },
    "Madrone Drive": {
-    "tier": "secondary",
-    "color": "#2e9d4f"
+    "tier": "secondary"
    },
    "Broadway Road": {
-    "tier": "secondary",
-    "color": "#d98200"
+    "tier": "secondary"
    },
    "Laurel Drive": {
     "tier": "connector"

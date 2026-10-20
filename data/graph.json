@@ -1,6 +1,6 @@
 {
- "rev": 486,
- "savedAt": "2026-10-14T05:15:12.664Z",
+ "rev": 548,
+ "savedAt": "2026-10-17T06:43:03.684Z",
  "state": {
   "version": 3,
   "enabled": [
@@ -38,7 +38,7 @@
     ]
    }
   ],
-  "active": "4010337345",
+  "active": "91078169",
   "nodes": [
    {
     "id": "91048935",
@@ -3057,6 +3057,502 @@
     "auto": true,
     "members": [
      4010337345
+    ]
+   },
+   {
+    "id": "1731187772",
+    "name": "East Zayante Road / Kingham Ranch Road",
+    "auto": true,
+    "members": [
+     1731187772
+    ]
+   },
+   {
+    "id": "91060053",
+    "name": "Kingham Ranch Road / Sun Mountain Road",
+    "auto": true,
+    "members": [
+     91060053
+    ]
+   },
+   {
+    "id": "12442363750",
+    "name": "Kingham Ranch Road / Blue Jay Way",
+    "auto": true,
+    "members": [
+     12442363750
+    ]
+   },
+   {
+    "id": "91050608",
+    "name": "Hutchinson Road / Old Logging Road",
+    "auto": true,
+    "members": [
+     91050608
+    ]
+   },
+   {
+    "id": "65539290",
+    "name": "Iron Springs Road / Hebard Way",
+    "auto": true,
+    "members": [
+     65539290
+    ]
+   },
+   {
+    "id": "91084016",
+    "name": "Lompico Road / West Drive",
+    "auto": true,
+    "members": [
+     91084016
+    ]
+   },
+   {
+    "id": "91096768",
+    "name": "West Drive / Lenore Way",
+    "auto": true,
+    "members": [
+     91096768
+    ]
+   },
+   {
+    "id": "12443552194",
+    "name": "West Drive / Lenore Way",
+    "auto": true,
+    "members": [
+     12443552194
+    ]
+   },
+   {
+    "id": "91096758",
+    "name": "West Drive / Lomita Avenue",
+    "auto": true,
+    "members": [
+     91096758
+    ]
+   },
+   {
+    "id": "91072244",
+    "name": "Vera Avenue / West Drive",
+    "auto": true,
+    "members": [
+     91072244
+    ]
+   },
+   {
+    "id": "4015247775",
+    "name": "Winifred Way / West Drive",
+    "auto": true,
+    "members": [
+     4015247775
+    ]
+   },
+   {
+    "id": "91064654",
+    "name": "Redwood Drive / West Drive",
+    "auto": true,
+    "members": [
+     91064654
+    ]
+   },
+   {
+    "id": "91060252",
+    "name": "Knoll Way / West Drive",
+    "auto": true,
+    "members": [
+     91060252
+    ]
+   },
+   {
+    "id": "12443531612",
+    "name": "West Drive",
+    "auto": true,
+    "members": [
+     12443531612
+    ]
+   },
+   {
+    "id": "91094614",
+    "name": "Sequoia Avenue / West Drive",
+    "auto": true,
+    "members": [
+     91094614
+    ]
+   },
+   {
+    "id": "91094604",
+    "name": "Sequoia Avenue / Portola Way",
+    "auto": true,
+    "members": [
+     91094604
+    ]
+   },
+   {
+    "id": "91094606",
+    "name": "Sequoia Avenue / Trevor Street",
+    "auto": true,
+    "members": [
+     91094606
+    ]
+   },
+   {
+    "id": "12374943261",
+    "name": "Sequoia Avenue",
+    "auto": true,
+    "members": [
+     12374943261
+    ]
+   },
+   {
+    "id": "91076150",
+    "name": "Sequoia Avenue / Loch Lomond Way",
+    "auto": true,
+    "members": [
+     91076150
+    ]
+   },
+   {
+    "id": "91064652",
+    "name": "Redwood Drive / Shady Way",
+    "auto": true,
+    "members": [
+     91064652
+    ]
+   },
+   {
+    "id": "91064650",
+    "name": "Redwood Drive / Laguna Street",
+    "auto": true,
+    "members": [
+     91064650
+    ]
+   },
+   {
+    "id": "12443531638",
+    "name": "Laguna Street / West Drive",
+    "auto": true,
+    "members": [
+     12443531638
+    ]
+   },
+   {
+    "id": "91064106",
+    "name": "Padre Street / Lomita Avenue",
+    "auto": true,
+    "members": [
+     91064106
+    ]
+   },
+   {
+    "id": "91064108",
+    "name": "Padre Street / Vera Avenue",
+    "auto": true,
+    "members": [
+     91064108
+    ]
+   },
+   {
+    "id": "91069260",
+    "name": "Arbol Avenue / Lomita Avenue",
+    "auto": true,
+    "members": [
+     91069260
+    ]
+   },
+   {
+    "id": "91072161",
+    "name": "Arbol Avenue / Vera Avenue",
+    "auto": true,
+    "members": [
+     91072161
+    ]
+   },
+   {
+    "id": "5177068212",
+    "name": "Lompico Road / Carrol Avenue",
+    "auto": true,
+    "members": [
+     5177068212
+    ]
+   },
+   {
+    "id": "91098059",
+    "name": "Carrol Avenue / Creekwood Drive",
+    "auto": true,
+    "members": [
+     91098059
+    ]
+   },
+   {
+    "id": "12450790007",
+    "name": "Carrol Avenue / Creekwood Drive",
+    "auto": true,
+    "members": [
+     12450790007
+    ]
+   },
+   {
+    "id": "91091716",
+    "name": "Paseo Street / Carrol Avenue",
+    "auto": true,
+    "members": [
+     91091716
+    ]
+   },
+   {
+    "id": "91076901",
+    "name": "Arbol Street / Carrol Avenue",
+    "auto": true,
+    "members": [
+     91076901
+    ]
+   },
+   {
+    "id": "91052924",
+    "name": "Lilac Street / Carrol Avenue",
+    "auto": true,
+    "members": [
+     91052924
+    ]
+   },
+   {
+    "id": "91091700",
+    "name": "Paseo Street / Creekwood Drive",
+    "auto": true,
+    "members": [
+     91091700
+    ]
+   },
+   {
+    "id": "91084026",
+    "name": "Lompico Road / Creekwood Drive",
+    "auto": true,
+    "members": [
+     91084026
+    ]
+   },
+   {
+    "id": "91048610",
+    "name": "Lompico Road / Fresco Street",
+    "auto": true,
+    "members": [
+     91048610
+    ]
+   },
+   {
+    "id": "91084037",
+    "name": "Lompico Road / Lake Boulevard",
+    "auto": true,
+    "members": [
+     91084037
+    ]
+   },
+   {
+    "id": "91084041",
+    "name": "Lompico Road / Old Mill Avenue",
+    "auto": true,
+    "members": [
+     91084041
+    ]
+   },
+   {
+    "id": "11875496755",
+    "name": "Lompico Road / Lake Boulevard",
+    "auto": true,
+    "members": [
+     11875496755
+    ]
+   },
+   {
+    "id": "91070852",
+    "name": "Visitar Street / Lake Boulevard",
+    "auto": true,
+    "members": [
+     91070852
+    ]
+   },
+   {
+    "id": "91090262",
+    "name": "Lake Boulevard / Creekwood Drive",
+    "auto": true,
+    "members": [
+     91090262
+    ]
+   },
+   {
+    "id": "91079562",
+    "name": "Lakeshore Drive / Lake Boulevard",
+    "auto": true,
+    "members": [
+     91079562
+    ]
+   },
+   {
+    "id": "91079564",
+    "name": "Lakeshore Drive / Van Allen Road",
+    "auto": true,
+    "members": [
+     91079564
+    ]
+   },
+   {
+    "id": "91059747",
+    "name": "Lakeview Avenue / Oceanview Avenue",
+    "auto": true,
+    "members": [
+     91059747
+    ]
+   },
+   {
+    "id": "12450790324",
+    "name": "Edgewood Drive / Oceanview Avenue",
+    "auto": true,
+    "members": [
+     12450790324
+    ]
+   },
+   {
+    "id": "91050285",
+    "name": "Gladys Avenue / Edgewood Drive",
+    "auto": true,
+    "members": [
+     91050285
+    ]
+   },
+   {
+    "id": "91059753",
+    "name": "Lakeview Avenue / Lakeshore Drive",
+    "auto": true,
+    "members": [
+     91059753
+    ]
+   },
+   {
+    "id": "91059749",
+    "name": "Lakeview Avenue / Edgewood Drive",
+    "auto": true,
+    "members": [
+     91059749
+    ]
+   },
+   {
+    "id": "91090299",
+    "name": "Lake Boulevard / Carrol Avenue",
+    "auto": true,
+    "members": [
+     91090299
+    ]
+   },
+   {
+    "id": "91092370",
+    "name": "Bidewee Way / Van Allen Road",
+    "auto": true,
+    "members": [
+     91092370
+    ]
+   },
+   {
+    "id": "91089962",
+    "name": "Buckeye Street / Lake Boulevard",
+    "auto": true,
+    "members": [
+     91089962
+    ]
+   },
+   {
+    "id": "5177068174",
+    "name": "Spring Street / Carrol Avenue",
+    "auto": true,
+    "members": [
+     5177068174
+    ]
+   },
+   {
+    "id": "91045887",
+    "name": "Volver Avenue / Gladys Avenue",
+    "auto": true,
+    "members": [
+     91045887
+    ]
+   },
+   {
+    "id": "5177068168",
+    "name": "Lakeshore Drive / Coleman Avenue",
+    "auto": true,
+    "members": [
+     5177068168
+    ]
+   },
+   {
+    "id": "91056300",
+    "name": "Whilaway Avenue / Madrone Avenue",
+    "auto": true,
+    "members": [
+     91056300
+    ]
+   },
+   {
+    "id": "91045897",
+    "name": "Volver Avenue / Idlewild Street",
+    "auto": true,
+    "members": [
+     91045897
+    ]
+   },
+   {
+    "id": "91045902",
+    "name": "Volver Avenue / Madrone Avenue",
+    "auto": true,
+    "members": [
+     91045902
+    ]
+   },
+   {
+    "id": "91045908",
+    "name": "Volver Avenue / Coleman Avenue",
+    "auto": true,
+    "members": [
+     91045908
+    ]
+   },
+   {
+    "id": "12450790259",
+    "name": "Coleman Avenue / El Lada Way",
+    "auto": true,
+    "members": [
+     12450790259
+    ]
+   },
+   {
+    "id": "91080429",
+    "name": "Coleman Avenue / Retrato Street",
+    "auto": true,
+    "members": [
+     91080429
+    ]
+   },
+   {
+    "id": "91072557",
+    "name": "Coleman Avenue / La Lena Street",
+    "auto": true,
+    "members": [
+     91072557
+    ]
+   },
+   {
+    "id": "91053348",
+    "name": "Juntar Street / Coleman Avenue",
+    "auto": true,
+    "members": [
+     91053348
+    ]
+   },
+   {
+    "id": "91078169",
+    "name": "East Zayante Road / Lompico Road",
+    "auto": true,
+    "members": [
+     91078169
     ]
    }
   ]
