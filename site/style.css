@@ -42,15 +42,22 @@ svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, s
 #title h1 { margin: 0; font-size: 20px; line-height: 1.1; letter-spacing: -.01em; }
 #title p { margin: 0; font-size: 12px; color: var(--muted); }
 
-#morphCtl { position: fixed; top: calc(14px + env(safe-area-inset-top)); right: 16px; display: flex; align-items: center; gap: 6px;
-  background: var(--card); box-shadow: var(--shadow); border-radius: 12px; padding: 6px 10px; font-size: 12px; color: var(--muted); }
-#morphCtl input { width: 96px; margin: 0; accent-color: var(--accent); }
-#localCtl { position: fixed; top: calc(58px + env(safe-area-inset-top)); right: 16px; display: flex; align-items: center; gap: 6px;
-  background: var(--card); box-shadow: var(--shadow); border-radius: 12px; padding: 6px 10px; font-size: 12px; color: var(--muted); cursor: pointer; }
-#localCtl input { margin: 0; accent-color: var(--accent); }
+/* Real | Subway: the highlight slides to the one that's on while the map morphs. */
+#morphCtl { position: fixed; top: calc(14px + env(safe-area-inset-top)); right: 16px; display: grid; grid-template-columns: 1fr 1fr;
+  background: var(--card); box-shadow: var(--shadow); border-radius: 12px; padding: 3px; }
+#morphCtl button { position: relative; border: 0; background: none; color: var(--muted); cursor: pointer; border-radius: 9px;
+  font: 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 8px 12px; transition: color .3s; }
+#morphCtl button[aria-pressed="true"] { color: var(--text); font-weight: 600; }
+#morphCtl .thumb { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 9px;
+  background: color-mix(in srgb, var(--accent) 24%, var(--card)); transform: translateX(100%); transition: transform .45s cubic-bezier(.65, 0, .35, 1); }
+#morphCtl.real .thumb { transform: none; }
+/* While the map morphs, the labels are faded out (setMorph). */
+#gLabels { transition: opacity .15s; }
+#gLabels.fade { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { #morphCtl .thumb, #morphCtl button, #gLabels { transition: none; } }
 
 /* Road search: under the title, full width on a phone. */
-#search { position: fixed; top: calc(100px + env(safe-area-inset-top)); left: 16px; width: min(360px, calc(100vw - 32px));
+#search { position: fixed; top: calc(58px + env(safe-area-inset-top)); left: 16px; width: min(360px, calc(100vw - 32px));
   display: flex; align-items: center; gap: 8px; background: var(--card); box-shadow: var(--shadow); border-radius: 12px;
   padding: 0 12px; color: var(--muted); z-index: 5; }
 #search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text); font: 16px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -77,6 +84,10 @@ body.has-card #controls { transform: translateY(calc(-1 * var(--card-h, 0px))); 
   box-shadow: var(--shadow); font: 22px/1 -apple-system, sans-serif; cursor: pointer; display: grid; place-items: center; padding: 0; }
 .ctl:hover { color: var(--accent); }
 .ctl.on { color: var(--me); }
+/* Hide local roads: the side streets in its icon fade while they're hidden. */
+#btnLocal[aria-pressed="true"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--card)); }
+#btnLocal[aria-pressed="true"] .side { opacity: .28; }
+#btnLocal:disabled { opacity: .45; cursor: default; color: var(--text); }
 .ctl.busy svg { animation: pulse 1s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .35; } }
 .zoom { display: flex; flex-direction: column; border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }

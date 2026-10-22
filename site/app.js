@@ -35,7 +35,7 @@ let pins = [];             // emoji placed on the map: { emoji, e, t }, and rece
 let adding = false;        // "Add another road": taps add to picks (for phones, which have no shift key)
 // Putting an emoji on the map: sel is { type: 'place', at } (see startPlacing).
 let me = null;             // { lat, lon, acc, loc } while location is on
-let morph = 1;             // 1 = the schematic, 0 = real geography (the slider)
+let morph = 1;             // 1 = the schematic, 0 = real geography (the Real | Subway toggle)
 
 // ---------- data ----------
 // Data paths are relative to this file, not the page, so the map also works from /recent/.
@@ -233,12 +233,12 @@ function locate(lat, lon) {
   return best;
 }
 
-// The slider morphs each line from its real road to its schematic shape: a point at fraction t
+// The Real | Subway toggle morphs each line from its real road to its schematic shape: a point at fraction t
 // of the road sits between its real and schematic positions. Both are linear in t between
 // breakpoints (real vertices, schematic anchors), so the morphed line is exact with anchors at
 // all of them, and everything that goes through the anchors (taps, links, your location)
 // follows the morph by itself. With keep, the road nearest the middle of the screen stays where it
-// is, so the slider morphs the map around what you're looking at.
+// is, so the map morphs around what you're looking at.
 function applyMorph(m, keep) {
   let pin = null;
   if (keep) {
@@ -549,6 +549,9 @@ function draw() {
     const c = M.zoom?.deadEnds != null && k > M.zoom.deadEnds;
     let lines = c !== coarse;
     coarse = c;
+    // Zoomed out this far, local roads are left off anyway (all of them are dead ends), so the button
+    // would do nothing.
+    $('btnLocal').disabled = c;
     if ((k !== drawn.k || lines) && updateURoads(k)) lines = true;
     if ((k !== drawn.k || lines) && updateBunches(k)) lines = true;
     if (k !== drawn.k || lines) { updateStubPlain(); updateClusters(k); }
@@ -801,11 +804,15 @@ function drawLabels(k) {
   });
   const acrossLine = (own) => (box) => lineBoxes.some(({ e, pts, box: b }) => e !== own && (show.has(e) || !stubEdges().has(e)) && overlaps(box, [b]) &&
     pts.some((q, i) => i && segHitsBox(pts[i - 1], q, box)));
+  // On the real map the big roads aren't named along their lines (below), so the side roads aren't
+  // named either; their stubs are drawn all the same, since they're real roads.
+  const real = morph < 1;
   // Side roads collapsed by hand into one branch: the same, with their names listed at its tip.
   for (const n of M.nodes) {
     if (n.kind !== 'branch' || !n.edges.length) continue;
     const e = realEdges(n)[0];
     if (!e || !drawable(e)) continue;
+    if (real) { show.add(e); continue; }
     const lines = (n.label || '').split(/\s*,\s*/).filter(Boolean).map(shortName);
     const label = lines.length ? tipLabel(n, lines, 10, 400, k, placed, stubText, acrossLine(e)) : '';
     if (label) { out += label; show.add(e); }
@@ -814,6 +821,7 @@ function drawLabels(k) {
     if (n.kind !== 'open' || !n.edges.length) continue;
     const e = n.edges[0];
     if (!drawable(e)) continue;
+    if (real) { show.add(e); continue; }
     if (e.full) { fullStubs.push(n); continue; }
     const label = isPlaceholder(e.road) ? '' : tipLabel(n, [roadText(e.road)], 10, 400, k, placed, stubText, acrossLine(e));
     if (label) { out += label; show.add(e); }
@@ -904,7 +912,7 @@ function drawLabels(k) {
 
   // A U road drawn as it is: its name past its far point, unless its line got one.
   for (const e of uOpen) {
-    if (!shown(e) || byName.has(e.road) || isPlaceholder(e.road)) continue;
+    if (real || !shown(e) || byName.has(e.road) || isPlaceholder(e.road)) continue;
     // Its far point: furthest out from the line between its ends, and the name past it, square to that line.
     const a = [e.A.x, e.A.y], c = unit(a, [e.B.x, e.B.y]), out_ = (q) => (q[0] - a[0]) * -c[1] + (q[1] - a[1]) * c[0];
     const far = anchorPts(e).reduce((f, q) => (Math.abs(out_(q)) > Math.abs(out_(f)) ? q : f), a), side = Math.sign(out_(far));
@@ -922,6 +930,7 @@ function drawLabels(k) {
     if (label || onLine) show.add(e);
   }
   $('gLabels').innerHTML = out;
+  if (!morphing) $('gLabels').classList.remove('fade');
   const same = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
   const stubsChanged = !same(show, stubShow), bunchesChanged = !same(named, bunchShow);
   bunchShow = named;
@@ -1719,13 +1728,38 @@ function placeAt(p, tol) {
 $('btnIn').onclick = () => { const [W, H] = size(); zoomAt(0.6, W / 2, H / 2); };
 $('btnOut').onclick = () => { const [W, H] = size(); zoomAt(1 / 0.6, W / 2, H / 2); };
 $('btnFit').onclick = () => (sub ? fitWithTips() : fitTo(M.bounds));
-// Geography <-> schematic. Redraws are coalesced to one per frame while dragging.
-let morphQueued = null;
-$('morph').oninput = (ev) => {
-  const v = ev.target.value / 1000;
-  if (morphQueued === null) requestAnimationFrame(() => { const m = morphQueued; morphQueued = null; if (M) applyMorph(m, true); });
-  morphQueued = v;
-};
+// Real roads <-> the subway map: a toggle, with the map morphing from one to the other (from wherever
+// it is, if it's switched back partway).
+// The labels can't follow the roads while they move, so they fade out first and the new ones fade in
+// after (drawLabels).
+const MORPH_MS = 900, LABEL_FADE_MS = 150;
+let morphAnim = 0, morphWait = 0, morphing = false;
+function setMorph(target) {
+  $('morphCtl').classList.toggle('real', target === 0);
+  $('mReal').setAttribute('aria-pressed', target === 0);
+  $('mSub').setAttribute('aria-pressed', target === 1);
+  cancelAnimationFrame(morphAnim); clearTimeout(morphWait);
+  if (!M || (target === morph && !morphing)) return;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const run = () => {
+    const from = morph, t0 = performance.now(), ms = reduce ? 0 : MORPH_MS * Math.abs(target - from);
+    const step = (now) => {
+      const f = ms ? Math.min(1, (now - t0) / ms) : 1;
+      const ease = f < 0.5 ? 4 * f ** 3 : 1 - (2 - 2 * f) ** 3 / 2;
+      if (f === 1) morphing = false;
+      applyMorph(f === 1 ? target : from + (target - from) * ease, true);
+      if (f < 1) morphAnim = requestAnimationFrame(step);
+    };
+    morphAnim = requestAnimationFrame(step);
+  };
+  morphing = true;
+  const labels = $('gLabels');
+  if (reduce || labels.classList.contains('fade')) { labels.classList.add('fade'); run(); return; }
+  labels.classList.add('fade');
+  morphWait = setTimeout(run, LABEL_FADE_MS);
+}
+$('mReal').onclick = () => setMorph(0);
+$('mSub').onclick = () => setMorph(1);
 // ---------- road search ----------
 // Every road name people might look for: roads on the map (and their other names, River St on Hwy 9),
 // neighborhoods and the roads in them, and roads tucked away in collapsed branches and map exits.
@@ -1883,10 +1917,10 @@ $('results').addEventListener('pointerdown', (ev) => {
 });
 $('q').addEventListener('blur', () => setTimeout(() => { $('results').hidden = true; }, 150));
 
-$('hideLocal').checked = hideLocal;
+$('btnLocal').setAttribute('aria-pressed', hideLocal);
 function setHideLocal(v) {
   hideLocal = v;
-  $('hideLocal').checked = v;
+  $('btnLocal').setAttribute('aria-pressed', v);
   try { localStorage.setItem('hideLocal', hideLocal ? '1' : '0'); } catch {}
   if (picks.some((p) => p.type === 'edge' && !shown(p.e))) {
     picks = picks.filter((p) => p.type !== 'edge' || shown(p.e));
@@ -1895,7 +1929,8 @@ function setHideLocal(v) {
   }
   if (M) { drawLines(); drawn.k = null; draw(); }
 }
-$('hideLocal').onchange = (ev) => setHideLocal(ev.target.checked);
+// An icon alone doesn't say what it did (and phones show no tooltip), so tapping it says.
+$('btnLocal').onclick = () => { setHideLocal(!hideLocal); toast(hideLocal ? 'Local roads hidden' : 'Local roads shown'); };
 $('btnLocate').onclick = startLocating;
 // Closing a road's card clears the highlights; closing an emoji's card leaves it on the map.
 $('cardClose').onclick = () => {

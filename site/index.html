@@ -21,8 +21,7 @@
 </svg>
 
 <header id="title">
-  <h1>95033</h1>
-  <p>Santa Cruz Mountains roads</p>
+  <h1>95033 Map</h1>
 </header>
 <!-- A neighborhood's own map: its name, and the way back to the main map. -->
 <header id="subBar">
@@ -37,14 +36,11 @@
   <ul id="results" role="listbox" hidden></ul>
 </div>
 
-<label id="morphCtl" title="Slide between the real roads and the subway map">
-  <span>Real</span>
-  <input id="morph" type="range" min="0" max="1000" value="1000" aria-label="Real roads to subway map">
-  <span>Subway</span>
-</label>
-<label id="localCtl" title="Leave off local roads, which don't go anywhere; back roads stay, since they might be a way out">
-  <input id="hideLocal" type="checkbox"> Hide local roads
-</label>
+<div id="morphCtl" role="group" aria-label="Real roads or subway map">
+  <span class="thumb" aria-hidden="true"></span>
+  <button id="mReal" aria-pressed="false" title="The roads where they really are">Real</button>
+  <button id="mSub" aria-pressed="true" title="The subway map">Subway</button>
+</div>
 
 <div id="controls">
   <button id="btnShare" class="ctl" title="Share a link to this map, with the roads highlighted and the emoji on it" aria-label="Share a link to this map">
@@ -60,6 +56,9 @@
     <button id="btnIn" class="ctl" aria-label="Zoom in">+</button>
     <button id="btnOut" class="ctl" aria-label="Zoom out">−</button>
   </div>
+  <button id="btnLocal" class="ctl" title="Hide local roads" aria-label="Hide local roads" aria-pressed="false">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M4 12h16" stroke-width="2.4"/><g class="side"><path d="M8 12V6M16 12v6" stroke-width="2"/><circle cx="8" cy="5" r="2.2" fill="currentColor" stroke="none"/><circle cx="16" cy="19" r="2.2" fill="currentColor" stroke="none"/></g></svg>
+  </button>
   <button id="btnFit" class="ctl" title="Whole map" aria-label="Whole map">
     <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>

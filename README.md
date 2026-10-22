@@ -294,7 +294,8 @@ always there, for a link to the map as it is. The location button shows where yo
 the schematic, using the same real ↔ schematic transform as the editor. If location is blocked
 (by the browser, or for the browser in the phone's settings), it says where to turn it back on.
 
-The *Real ↔ Subway* slider (top right) morphs the map between the real roads and the schematic.
+The *Real | Subway* toggle (top right) switches the map between the real roads and the schematic, morphing
+from one to the other.
 
 The search box (top middle on a wide screen, under the title on a phone) finds roads by name as you type: roads on the map (and their other
 names, River St on Hwy 9), neighborhoods and the roads in them, and roads in collapsed branches and map
@@ -309,7 +310,7 @@ back button, the phone's back gesture, Esc, × and a click on the main map behin
 main map as you left it. Everything else works the same on it: tapping, highlighting, emoji, links, your
 location and the slider. Search finds its streets first, then the main map's roads (picking one goes back).
 
-*Hide local roads* (under the slider) leaves off, at any zoom, the roads that are no use for getting
+*Hide local roads* (the button with a road and two side streets, above *Whole map*) leaves off, at any zoom, the roads that are no use for getting
 anywhere: local roads, stubs, and stretches that only lead to them. Back roads stay, since they might be a
 way out. The setting is remembered in that browser.
 Tapping, links and your location work at any position, because a point on a road is drawn between
