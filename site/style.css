@@ -9,21 +9,24 @@
   --node-fill: #ffffff;
   --node-stroke: #1d1d1b;
   --me: #1a73e8;
+  --logo-pin: #0c2463; --logo-line: #fff;
   /* Roads, by tier (1 highway … 6 local road): one blue, darker the bigger the road. */
   --t1: #0c2463; --t2: #2c64d0; --t3: #82a8e4; --t4: #8a95a6; --t5: #9ea6b3; --t6: #b1b7c0;
   --shadow: 0 2px 10px rgba(0, 0, 0, .12), 0 0 0 1px rgba(0, 0, 0, .04);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #121211; --card: #1f1f1d; --text: #ecebe6; --muted: #9c9b94; --line: #34332f; --accent: #5aa4f0;
+    --bg: #121211; --card: #1f1f1d; --text: #e9ecf1; --muted: #9c9b94; --line: #34332f; --accent: #5aa4f0;
     --halo: #121211; --node-fill: #121211; --node-stroke: #ecebe6; --poi-fill: #3a3935; --me: #4c9bff;
+    --logo-pin: #e9ecf1; --logo-line: #0c2463;
     --t1: #dce7ff; --t2: #679bf5; --t3: #4b6ba9; --t4: #465d86; --t5: #565d68; --t6: #4a5059;
     --shadow: 0 2px 12px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .06);
   }
 }
 :root[data-theme="dark"] {
-  --bg: #121211; --card: #1f1f1d; --text: #ecebe6; --muted: #9c9b94; --line: #34332f; --accent: #5aa4f0;
+  --bg: #121211; --card: #1f1f1d; --text: #e9ecf1; --muted: #9c9b94; --line: #34332f; --accent: #5aa4f0;
   --halo: #121211; --node-fill: #121211; --node-stroke: #ecebe6; --poi-fill: #3a3935; --me: #4c9bff;
+  --logo-pin: #e9ecf1; --logo-line: #0c2463;
   --t1: #dce7ff; --t2: #679bf5; --t3: #4b6ba9; --t4: #465d86; --t5: #565d68; --t6: #4a5059;
   --shadow: 0 2px 12px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .06);
 }
@@ -39,7 +42,12 @@ svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, s
 
 #title { position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 16px; pointer-events: none;
   background: color-mix(in srgb, var(--bg) 82%, transparent); padding: 6px 10px; border-radius: 10px; }
-#title h1 { margin: 0; font-size: 20px; line-height: 1.1; letter-spacing: -.01em; }
+#title h1 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 20px; line-height: 1.1; letter-spacing: -.01em; }
+/* The logo: a pin with the ridge on it and a red station on the summit (site/icon.svg is the favicon). */
+#title .logo { height: 24px; width: auto; flex: none; }
+#title .logo .p { fill: var(--logo-pin); }
+#title .logo .l { fill: none; stroke: var(--logo-line); stroke-width: 4.4; stroke-linecap: round; stroke-linejoin: round; }
+#title .logo .s { fill: #e5484d; stroke-width: 2.8; }
 #title p { margin: 0; font-size: 12px; color: var(--muted); }
 
 /* Real | Subway: the highlight slides to the one that's on while the map morphs. */
