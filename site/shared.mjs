@@ -116,6 +116,36 @@ export function placeSpot(pointAt, t, side) {
   return { at: pointAt(t), n: [-(b[1] - a[1]) / L * side, (b[0] - a[0]) / L * side] };
 }
 
+// A corner place: one at a junction (its t is 0 or 1, and it has corner: true), like a corner store.
+// Its tick starts at the edge of the junction's dot (c its center, r its radius) and points into the
+// wedge between its own line and the next line round on its side: own is the unit vector along its
+// line away from the junction, others the same for the junction's other lines, n its side's normal
+// (from placeSpot). With no other line there, it points straight out to its side.
+export function cornerSpot(c, own, others, n, r) {
+  const s = Math.sign(own[0] * n[1] - own[1] * n[0]) || 1;
+  let gap = Infinity;
+  for (const u of others) {
+    let a = s * Math.atan2(own[0] * u[1] - own[1] * u[0], own[0] * u[0] + own[1] * u[1]);
+    if (a <= 1e-3) a += 2 * Math.PI;
+    gap = Math.min(gap, a);
+  }
+  const half = (Number.isFinite(gap) ? gap : Math.PI) / 2, th = s * half, cs = Math.cos(th), sn = Math.sin(th);
+  const d = [own[0] * cs - own[1] * sn, own[0] * sn + own[1] * cs];
+  return { at: [c[0] + d[0] * r, c[1] + d[1] * r], n: d, half, c };
+}
+// A corner place's badge: out along its wedge, past the junction's dot (r), and in a narrow wedge far
+// enough out to clear the lines either side (lineW: the wider one's width in pixels).
+export function cornerBadge(spot, r, lineW, k) {
+  const R = PLACE_R * k, need = (R + (lineW / 2 + 2) * k) / Math.sin(Math.min(spot.half, Math.PI / 2));
+  const off = Math.max(r + (PLACE_GAP * k) + R, need);
+  return { r: R, c: [spot.c[0] + spot.n[0] * off, spot.c[1] + spot.n[1] * off] };
+}
+// The unit vector along a line leaving its end at t (0 or 1); pointAt(t) gives its drawn points.
+export function awayFrom(pointAt, t) {
+  const a = pointAt(t), b = pointAt(t ? 0.99 : 0.01), L = dist(a, b) || 1;
+  return [(b[0] - a[0]) / L, (b[1] - a[1]) / L];
+}
+
 // Its badge's center, beside the line (lineW: the line's width in pixels) on the place's side.
 export function placeBadge({ at, n }, lineW, k) {
   const off = (lineW / 2 + PLACE_GAP + PLACE_R) * k;

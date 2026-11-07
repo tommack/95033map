@@ -217,6 +217,9 @@ export function buildMap(graph, layout, slugsIn = null, { live: liveElsewhere = 
 
   // Places (shops, schools…) on drawn lines: e is the line's index, t how far along its real road, side
   // 1 or -1 (left or right, going the way t grows). Each is linked by its name, made unique on this map.
+  // A hidden one is kept in the data, with its spot, but the map doesn't draw it or find it. A corner one
+  // (t 0 or 1) is drawn coming out of the junction itself (cornerSpot in shared.mjs). One with lod 1 is
+  // left off when zoomed out, like the roads and junctions marked so.
   const edgeAt = new Map(edges.map((e, i) => [e.key, i])), placeSlugs = new Set(), places = [];
   for (const p of layout.places || []) {
     const i = edgeAt.get(p.key);
@@ -225,7 +228,7 @@ export function buildMap(graph, layout, slugsIn = null, { live: liveElsewhere = 
     let slug = base;
     for (let n = 2; placeSlugs.has(slug); n++) slug = `${base}-${n}`;
     placeSlugs.add(slug);
-    places.push({ slug, name: p.name, icon: p.icon, type: p.type, e: i, t: p.t, side: p.side, lat: p.lat, lon: p.lon, ...(p.osm ? { osm: p.osm } : {}) });
+    places.push({ slug, name: p.name, icon: p.icon, type: p.type, e: i, t: p.t, side: p.side, lat: p.lat, lon: p.lon, ...(p.osm ? { osm: p.osm } : {}), ...(p.hidden ? { hidden: true } : {}), ...(p.corner ? { corner: true } : {}), ...(p.lod ? { lod: p.lod } : {}) });
   }
 
   const xs = nodes.map((n) => n.x), ys = nodes.map((n) => n.y);
@@ -280,7 +283,7 @@ export function buildAll(graph, layout, areaLayouts = {}, slugsIn = null) {
     const n = map.nodes.find((x) => x.id === `x:${g.id}`);
     if (n) n.sub = slug;
     // Its places, so the main map's search finds them too.
-    if (n && areas[slug].places) n.places = areas[slug].places.map((p) => p.name);
+    if (n && areas[slug].places) n.places = areas[slug].places.filter((p) => !p.hidden).map((p) => p.name);
   }
   return { map, areas, slugs, warnings };
 }

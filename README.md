@@ -214,7 +214,9 @@ the node picker rewrites on every save (an open editor picks up the change by it
   nearest drawn road, on the side the real place is. *Place by hand*, then click a road, adds one that
   isn't in OpenStreetMap. Drag a place's badge along its road or onto another one. Its popup changes the
   name, icon and type, moves it to the *Other side* of the road, puts an OpenStreetMap place back on its nearest road, or removes it (or press
-  <kbd>Delete</kbd>). Places are saved with the layout they're added in, so a neighborhood's own map has
+  <kbd>Delete</kbd>). *Hidden* keeps a place in the map's data (`map.json`), with its spot, without
+  drawing it on the public map or letting its search find it: for landmarks people go by that the map
+  doesn't need to show. The editor draws hidden places faint, with a dashed ring. Places are saved with the layout they're added in, so a neighborhood's own map has
   its own. In the tools shell, the **Nodes** tab also shows the OpenStreetMap places on the real map
   (zoomed in; the *Places* button hides them): click one to add it to whichever map the Layout tab has
   open, or to show or remove it once it's on (blue ring).

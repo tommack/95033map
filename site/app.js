@@ -17,7 +17,7 @@
 import { buildAll, shortName } from './build-map.mjs';
 import {
   esc, dist, lerp, clamp, fmt, unit, pathLen, overlaps, segHitsBox, segProject, anchorsAt, anchorsProject,
-  chevrons as chevronSize, chevronSvg, tipText, areaSvg, placeFit, bunchSideRoads, bunchBranch,
+  chevrons as chevronSize, chevronSvg, tipText, areaSvg, placeFit, placeSpot, cornerSpot, cornerBadge, awayFrom, bunchSideRoads, bunchBranch,
   TIER_W, BUNCH_PX, PLACE_R, BACK_ROAD, tierColor,
 } from './shared.mjs';
 
@@ -107,7 +107,7 @@ function prepare(m) {
     bySlug: new Map(edges.filter((e) => e.slug).map((e) => [e.slug, e])),
     byKey: new Map(edges.map((e) => [e.key, e])),
     nodeBySlug: new Map(nodes.filter((n) => n.slug).map((n) => [n.slug, n])),
-    places: (m.places || []).map((q) => ({ ...q, e: edges[q.e] })),
+    places: (m.places || []).filter((q) => !q.hidden).map((q) => ({ ...q, e: edges[q.e] })),   // hidden ones aren't drawn
     P,
     U: ([x, y]) => [lat0 - y / ky, lon0 + x / kx],
   };
@@ -470,7 +470,7 @@ function placeGeom(q, k) {
   if (placeFits?.M !== M || placeFits.key !== key) placeFits = { M, key, at: fitPlaces(k) };
   return placeFits.at.get(q) || fitPlaces(k, [q]).get(q);
 }
-function fitPlaces(k, list = M.places) {
+function fitPlaces(k, list = placesShown()) {
   const lines = M.edges.filter((e) => shown(e) && !e.virtual).map((e) => {
     const pts = anchorPts(e), xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
     return { e, pts, w: lineWidth(e) * k / 2, box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] };
@@ -486,14 +486,25 @@ function fitPlaces(k, list = M.places) {
       return false;
     });
   for (const q of list) {
-    const g = placeFit((t) => schemAt(q.e, t), q.t, q.side, lineWidth(q.e), k, pathLen(anchorPts(q.e)), blocked);
+    const g = q.corner ? cornerGeom(q, k) : placeFit((t) => schemAt(q.e, t), q.t, q.side, lineWidth(q.e), k, pathLen(anchorPts(q.e)), blocked);
     out.set(q, g);
     badges.push(g);
   }
   return out;
 }
+// A corner place (see cornerSpot): out of its junction, between its road and the next one round on its
+// side. It doesn't slide: it's where the junction is.
+function cornerGeom(q, k) {
+  const end = q.t < 0.5 ? 0 : 1, j = end ? q.e.B : q.e.A, at = (e) => (t) => schemAt(e, t);
+  const lines = j.edges.filter((e) => e !== q.e && shown(e) && !e.virtual), r = junctionR(j) * k;
+  const spot = cornerSpot([j.x, j.y], awayFrom(at(q.e), end), lines.map((e) => awayFrom(at(e), e.A === j ? 0 : 1)), placeSpot(at(q.e), end, q.side).n, r);
+  return { ...spot, ...cornerBadge(spot, r, Math.max(lineWidth(q.e), ...lines.map(lineWidth)), k) };
+}
 // Zoomed out, or while its road is left off, a badge stands alone where it would be, with no tick.
 const placeTied = (q) => !coarse && shown(q.e);
+// One marked lod 1 is left off zoomed out, like the roads and junctions marked so (search still finds it).
+const placeShown = (q) => !(coarse && q.lod);
+const placesShown = () => M.places.filter(placeShown);
 function placeSvg(q, k) {
   const { at, n, r, c: [x, y] } = placeGeom(q, k), bare = !DARK.matches, end = bare ? r * 0.75 : r;
   return (placeTied(q) ? `<path d="M${fmt(at[0])} ${fmt(at[1])}L${fmt(x - n[0] * end)} ${fmt(y - n[1] * end)}" stroke="var(--muted)" stroke-width="${1.5 * k}"/>` : '') +
@@ -638,7 +649,7 @@ function drawNodes(k) {
     const r = junctionR(n) * k;
     s += `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${r}" fill="var(--node-fill)" stroke="var(--node-stroke)" stroke-width="${(big ? 2.6 : 2) * k}"/>`;
   }
-  for (const q of M.places) s += placeSvg(q, k);
+  for (const q of placesShown()) s += placeSvg(q, k);
   $('gNodes').innerHTML = s;
 }
 
@@ -731,7 +742,7 @@ function drawLabels(k) {
     const r = n.kind === 'area' ? areaR(n, k) : 4 * k;
     return { x0: n.x - r, y0: n.y - r, x1: n.x + r, y1: n.y + r };
   });
-  const shownPlaces = M.places.map((q) => ({ q, ...placeGeom(q, k) }));
+  const shownPlaces = placesShown().map((q) => ({ q, ...placeGeom(q, k) }));
   for (const { c: [x, y], r } of shownPlaces) placed.push({ x0: x - r, y0: y - r, x1: x + r, y1: y + r });
   let out = '';
   const halo = (w) => `stroke="var(--halo)" stroke-width="${w * k}" stroke-linejoin="round" paint-order="stroke"`;
@@ -783,50 +794,6 @@ function drawLabels(k) {
       break;
     }
   }
-  const named = new Set();
-  for (const b of bunches) {
-    // A long list is cut short: the rest are found by zooming in.
-    const lines = b.names.length > 6 ? [...b.names.slice(0, 5), `+ ${b.names.length - 5} more`] : b.names;
-    const [x, y] = bunchTip(b, k);
-    const label = lines.length ? tipLabel({ x, y, kind: 'branch', dir: b.dir }, lines, 10, 400, k, placed, stubText) : '';
-    if (label) { out += label; named.add(bunchKey(b)); }
-  }
-
-  // Dead-end stubs: the road's name, small, past the tip; with no room for it, no stub. Before the names
-  // along the lines, which move about as you zoom, so that a stub, once there, stays as you zoom in.
-  // A stub that's the end of a road named along its own line is named there instead (below).
-  const show = new Set(), fullStubs = [];
-  const drawable = (x) => shownLod(x) && !bunchHide.has(x) && (x.uStub ? uOpen.has(x) : x.uFor ? !uOpen.has(x.uFor) : true);
-  // ...and not across another line.
-  const lineBoxes = M.edges.filter((x) => drawable(x) && !x.virtual).map((x) => {
-    const pts = anchorPts(x), xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
-    return { e: x, pts, box: { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) } };
-  });
-  const acrossLine = (own) => (box) => lineBoxes.some(({ e, pts, box: b }) => e !== own && (show.has(e) || !stubEdges().has(e)) && overlaps(box, [b]) &&
-    pts.some((q, i) => i && segHitsBox(pts[i - 1], q, box)));
-  // On the real map the big roads aren't named along their lines (below), so the side roads aren't
-  // named either; their stubs are drawn all the same, since they're real roads.
-  const real = morph < 1;
-  // Side roads collapsed by hand into one branch: the same, with their names listed at its tip.
-  for (const n of M.nodes) {
-    if (n.kind !== 'branch' || !n.edges.length) continue;
-    const e = realEdges(n)[0];
-    if (!e || !drawable(e)) continue;
-    if (real) { show.add(e); continue; }
-    const lines = (n.label || '').split(/\s*,\s*/).filter(Boolean).map(shortName);
-    const label = lines.length ? tipLabel(n, lines, 10, 400, k, placed, stubText, acrossLine(e)) : '';
-    if (label) { out += label; show.add(e); }
-  }
-  for (const n of M.nodes) {
-    if (n.kind !== 'open' || !n.edges.length) continue;
-    const e = n.edges[0];
-    if (!drawable(e)) continue;
-    if (real) { show.add(e); continue; }
-    if (e.full) { fullStubs.push(n); continue; }
-    const label = isPlaceholder(e.road) ? '' : tipLabel(n, [roadText(e.road)], 10, 400, k, placed, stubText, acrossLine(e));
-    if (label) { out += label; show.add(e); }
-  }
-
   // Straight runs: collinear segments of one road joined through junctions. Not while the map
   // is morphing toward geography: roads are curvy there and the names would jump about.
   const segs = [];
@@ -868,7 +835,7 @@ function drawLabels(k) {
   }));
   cands.sort((u, v) => (v.major - u.major) || (v.len - u.len));
   const byName = new Map();
-  for (const c of cands) {
+  const nameRuns = (list) => { for (const c of list) {
     const px = c.major ? 13 : 11, fs = px * k, weight = c.major ? 600 : 400;
     const text = roadText(c.e.road), tw = textWidth(text, px, weight) * k;
     if (c.len < tw + 24 * k) continue;
@@ -893,21 +860,86 @@ function drawLabels(k) {
     byName.get(c.e.road).push(mid);
     out += `<text transform="translate(${fmt(spot.cx)} ${fmt(spot.cy)}) rotate(${((ang * 180) / Math.PI).toFixed(1)})" text-anchor="middle" dy="0.35em" font-size="${fs}"` +
       `${c.major ? ' font-weight="600"' : ''} fill="${c.major || (c.e.tier || 4) < BACK_ROAD ? c.e.style.color : 'var(--muted)'}" ${halo(3)}>${esc(text)}</text>`;
+  } };
+  // The main roads' names first, before the side roads' names at bunches, branches and stubs: with
+  // local roads shown there are a great many of those, and they'd crowd out the names that matter most.
+  nameRuns(cands.filter((c) => c.major));
+
+  const named = new Set();
+  for (const b of bunches) {
+    // A long list is cut short: the rest are found by zooming in.
+    const lines = b.names.length > 6 ? [...b.names.slice(0, 5), `+ ${b.names.length - 5} more`] : b.names;
+    const [x, y] = bunchTip(b, k);
+    const label = lines.length ? tipLabel({ x, y, kind: 'branch', dir: b.dir }, lines, 10, 400, k, placed, stubText) : '';
+    if (label) { out += label; named.add(bunchKey(b)); }
   }
+
+  // Dead-end stubs: the road's name, small, past the tip; with no room for it, no stub. Before the other
+  // roads' names along their lines, which move about as you zoom, so that a stub, once there, stays as you
+  // zoom in (beside a main road, whose name is placed first, it can still come and go).
+  // A stub that's the end of a road named along its own line is named there instead (below).
+  const show = new Set(), fullStubs = [];
+  const drawable = (x) => shownLod(x) && !bunchHide.has(x) && (x.uStub ? uOpen.has(x) : x.uFor ? !uOpen.has(x.uFor) : true);
+  // ...and not across another line.
+  const lineBoxes = M.edges.filter((x) => drawable(x) && !x.virtual).map((x) => {
+    const pts = anchorPts(x), xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
+    return { e: x, pts, box: { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) } };
+  });
+  const acrossLine = (own) => (box) => lineBoxes.some(({ e, pts, box: b }) => e !== own && (show.has(e) || !stubEdges().has(e)) && overlaps(box, [b]) &&
+    pts.some((q, i) => i && segHitsBox(pts[i - 1], q, box)));
+  // On the real map the big roads aren't named along their lines (below), so the side roads aren't
+  // named either; their stubs are drawn all the same, since they're real roads.
+  const real = morph < 1;
+  // Side roads collapsed by hand into one branch: the same, with their names listed at its tip.
+  for (const n of M.nodes) {
+    if (n.kind !== 'branch' || !n.edges.length) continue;
+    const e = realEdges(n)[0];
+    if (!e || !drawable(e)) continue;
+    if (real) { show.add(e); continue; }
+    const lines = (n.label || '').split(/\s*,\s*/).filter(Boolean).map(shortName);
+    const label = lines.length ? tipLabel(n, lines, 10, 400, k, placed, stubText, acrossLine(e)) : '';
+    if (label) { out += label; show.add(e); }
+  }
+  for (const n of M.nodes) {
+    if (n.kind !== 'open' || !n.edges.length) continue;
+    const e = n.edges[0];
+    if (!drawable(e)) continue;
+    if (real) { show.add(e); continue; }
+    if (e.full) { fullStubs.push(n); continue; }
+    const label = isPlaceholder(e.road) ? '' : tipLabel(n, [roadText(e.road)], 10, 400, k, placed, stubText, acrossLine(e));
+    if (label) { out += label; show.add(e); }
+  }
+
+  // Then the other roads' names along their lines.
+  nameRuns(cands.filter((c) => !c.major));
 
   // Places: the name past the badge, away from the road, if there's room. Zoomed out, no label: the
   // icon says what kind of place it is, and some names are very long.
+  // A corner place's name has lines on two sides of it, so it tries beside the badge and then above or
+  // below it, and takes the first spot that crosses neither a line nor another label.
   for (const { q, n, r, c: [x, y] } of shownPlaces) {
     if (k >= PLACE_NAME_K) break;
     const name = q.name;
-    const fs = 10.5 * k, tw = textWidth(name, 10.5, 600) * k, gap = r + 4 * k, side = Math.abs(n[0]) >= 0.5;
-    const tx = side ? x + Math.sign(n[0]) * gap : x, ty = side ? y : y + Math.sign(n[1] || 1) * (gap + fs * 0.5);
-    const anchor = side ? (n[0] > 0 ? 'start' : 'end') : 'middle';
-    const x0 = anchor === 'start' ? tx : anchor === 'end' ? tx - tw : tx - tw / 2;
-    const box = { x0, x1: x0 + tw, y0: ty - fs * 0.6, y1: ty + fs * 0.6 };
-    if (overlaps(box, placed)) continue;
-    placed.push(box);
-    out += `<text x="${fmt(tx)}" y="${fmt(ty)}" dy="0.35em" text-anchor="${anchor}" font-size="${fs}" font-weight="600" fill="var(--text)" ${halo(3)}>${esc(name)}</text>`;
+    const fs = 10.5 * k, tw = textWidth(name, 10.5, 600) * k, gap = r + 4 * k;
+    // Beside the badge (side), or above or below it: centered, or (align) running off one way from its edge.
+    const spotFor = (side, sx, sy, align = 0) => {
+      const tx = side ? x + sx * gap : x - align * r, ty = side ? y : y + sy * (gap + fs * 0.5);
+      const anchor = side ? (sx > 0 ? 'start' : 'end') : align > 0 ? 'end' : align < 0 ? 'start' : 'middle';
+      const x0 = anchor === 'start' ? tx : anchor === 'end' ? tx - tw : tx - tw / 2;
+      return { tx, ty, anchor, box: { x0, x1: x0 + tw, y0: ty - fs * 0.6, y1: ty + fs * 0.6 } };
+    };
+    const sx = Math.sign(n[0]) || 1, sy = Math.sign(n[1]) || 1, side = Math.abs(n[0]) >= 0.5;
+    let spots = [spotFor(side, sx, sy)];
+    if (q.corner) {
+      const j = q.t < 0.5 ? q.e.A : q.e.B, near = j.edges.filter((e) => shown(e) && !e.virtual).map(anchorPts);
+      const crosses = (box) => near.some((pts) => pts.some((p, i) => i && segHitsBox(pts[i - 1], p, box)));
+      spots = [spots[0], spotFor(!side, sx, sy), spotFor(false, sx, sy, -sx), spotFor(false, sx, sy, sx),
+        spotFor(false, sx, -sy, -sx), spotFor(false, sx, -sy, sx), spotFor(true, -sx, sy)].filter((s) => !crosses(s.box));
+    }
+    const s = spots.find((s) => !overlaps(s.box, placed));
+    if (!s) continue;
+    placed.push(s.box);
+    out += `<text x="${fmt(s.tx)}" y="${fmt(s.ty)}" dy="0.35em" text-anchor="${s.anchor}" font-size="${fs}" font-weight="600" fill="var(--text)" ${halo(3)}>${esc(name)}</text>`;
   }
 
   // A U road drawn as it is: its name past its far point, unless its line got one.
@@ -1613,7 +1645,7 @@ function hitAt(p, k, tol) {
   const pin = [...pins].reverse().find((q) => dist(p, pinAt(q, k)) < (PIN_R + 1) * k);
   if (pin) return { type: 'pin', pin };
   if (me?.loc && !me.loc.far && dist(p, me.loc.at) < tol) return { type: 'me' };
-  const poi = M.places.map((q) => ({ q, d: dist(p, placeGeom(q, k).c) })).filter((x) => x.d < Math.max(tol, (PLACE_R + 3) * k)).sort((a, b) => a.d - b.d)[0];
+  const poi = placesShown().map((q) => ({ q, d: dist(p, placeGeom(q, k).c) })).filter((x) => x.d < Math.max(tol, (PLACE_R + 3) * k)).sort((a, b) => a.d - b.d)[0];
   if (poi) return { type: 'poi', q: poi.q };
   const b = bunchesShown().find((b) => segProject([b.j.x, b.j.y], bunchTip(b, k), p).d <= tol);
   if (b) return { type: 'bunch', b };

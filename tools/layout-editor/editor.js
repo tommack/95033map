@@ -1,6 +1,6 @@
 import {
   esc, lerp, dist, fmt, pathLen, overlaps, segProject, anchorsAt, anchorsProject,
-  chevrons as chevronSize, chevronSvg, tipText, areaSvg, placeSpot, placeBadge, bunchSideRoads, bunchBranch,
+  chevrons as chevronSize, chevronSvg, tipText, areaSvg, placeSpot, placeBadge, cornerSpot, cornerBadge, awayFrom, bunchSideRoads, bunchBranch,
   TIER_W, MINOR as MINOR_COLOR, BUNCH_PX, tierColor,
 } from '../../site/shared.mjs';
 import { placeKind } from '../place-kinds.mjs';
@@ -1352,7 +1352,7 @@ function render() {
   const skip = { edges: new Set([...(coarse ? lod.edges : []), ...bunch.edges]), nodes: new Set([...(coarse ? lod.nodes : []), ...bunch.nodes]) };
   if ((mode === 'roads' || mode === 'both') && morph === 1) labels += roadLabels(k, placed, skip, bunch.list);
   $('gLabels').innerHTML = labels;
-  $('gPlaces').innerHTML = placesSvg(k, (e) => { const i = G.edges.indexOf(e); return (coarse && lod.edges.has(i)) || bunch.edges.has(i); });
+  $('gPlaces').innerHTML = placesSvg(k, (e) => { const i = G.edges.indexOf(e); return (coarse && lod.edges.has(i)) || bunch.edges.has(i); }, coarse);
   renderPlaces();
 
   let handles = '';
@@ -1523,10 +1523,13 @@ function deadEnds(back = true) {
 }
 
 // ---------- places ----------
-// Shops, schools and the like: { id, name, icon, type, osm?, lat, lon, key, t, side }. Each sits on a
+// Shops, schools and the like: { id, name, icon, type, osm?, lat, lon, key, t, side, hidden?, corner?, lod? }. Each sits on a
 // line (key) at fraction t of its real road, on one side of it (side 1 or -1: the side a left turn
 // goes to, travelling the way t grows). lat/lon is the place itself (from OpenStreetMap, or the spot
-// on the road for one placed by hand).
+// on the road for one placed by hand). A hidden one isn't drawn on the public map but stays in its
+// data with its spot (drawn faint and dashed here). A corner one sits at the junction at its line's
+// end (t 0 or 1) and comes out of the junction itself (see cornerSpot). One with lod 1 is left off the
+// public map when zoomed out (drawn faint here then).
 // Which side of line e at t point p is on (real geometry; see above).
 function realSide(e, t, p) {
   const a = realAt(e, Math.max(0, t - 0.002)), b = realAt(e, Math.min(1, t + 0.002)), q = realAt(e, t);
@@ -1547,8 +1550,13 @@ function placeGeom(pl, byKey) {
   const e = byKey.get(pl.key);
   if (!e) return null;
   const an = drawAnchors(e);
-  const pt = (t) => (morph === 1 ? schemAt(e, t, an) : lerp(realAt(e, t), schemAt(e, t, an), morph));
-  return { e, ...placeSpot(pt, pl.t, pl.side) };
+  const ptOf = (e, an = drawAnchors(e)) => (t) => (morph === 1 ? schemAt(e, t, an) : lerp(realAt(e, t), schemAt(e, t, an), morph));
+  const pt = ptOf(e, an);
+  if (!pl.corner) return { e, ...placeSpot(pt, pl.t, pl.side) };
+  const end = pl.t < 0.5 ? 0 : 1, j = end ? e.b : e.a;
+  const lines = (G.incident.get(j) || []).map(i => G.edges[i]).filter(x => x !== e);
+  // r 0: the tick starts at the junction's center; placesSvg moves it out past the dot.
+  return { e, lines, corner: true, ...cornerSpot(pt(end), awayFrom(pt, end), lines.map(x => awayFrom(ptOf(x), x.a === j ? 0 : 1)), placeSpot(pt, end, pl.side).n, 0) };
 }
 const placeBadges = new Map();   // id -> badge center, as last drawn (for the popup)
 function addPlace(o) {
@@ -1596,21 +1604,22 @@ function setPlacingHand(on) {
   $('btnPlaceHand').classList.toggle('on', on);
   $('btnPlaceHand').textContent = on ? 'Click a road… (Esc cancels)' : 'Place by hand';
 }
-function placesSvg(k, faintEdge) {
+function placesSvg(k, faintEdge, coarse) {
   let out = '';
   const byKey = new Map(G.edges.map((e, i) => [e.key, e]));
   placeBadges.clear();
   for (const pl of places) {
     const g = placeGeom(pl, byKey);
     if (!g) continue;
-    const { r, c: [bx, by] } = placeBadge(g, lineWidth(g.e), k), on = selPlace === pl.id;
+    if (g.corner) g.at = [g.at[0] + g.n[0] * 6 * k, g.at[1] + g.n[1] * 6 * k];   // past the junction's dot
+    const { r, c: [bx, by] } = g.corner ? cornerBadge(g, 6 * k, Math.max(lineWidth(g.e), ...g.lines.map(lineWidth)), k) : placeBadge(g, lineWidth(g.e), k), on = selPlace === pl.id;
     placeBadges.set(pl.id, [bx, by]);
     const fs = 10 * k, gap = r + 4 * k, side = Math.abs(g.n[0]) >= 0.5;
     const tx = side ? bx + Math.sign(g.n[0]) * gap : bx, ty = side ? by : by + Math.sign(g.n[1] || 1) * (gap + fs * 0.4);
-    out += `<g${faintEdge(g.e) ? ' opacity=".18"' : ''}>` +
+    out += `<g${faintEdge(g.e) || (coarse && pl.lod) ? ' opacity=".18"' : pl.hidden ? ' opacity=".5"' : ''}>` +
       `<path d="${pathD([g.at, [bx - g.n[0] * r, by - g.n[1] * r]])}" stroke="var(--node-stroke)" stroke-width="${1.5 * k}"/>` +
       (on ? `<circle cx="${fmt(bx)}" cy="${fmt(by)}" r="${r + 4 * k}" fill="var(--accent)" fill-opacity=".3"/>` : '') +
-      `<circle class="handle" data-place="${esc(pl.id)}" cx="${fmt(bx)}" cy="${fmt(by)}" r="${r}" fill="var(--node-fill)" stroke="${on ? 'var(--accent)' : 'var(--node-stroke)'}" stroke-width="${1.5 * k}"/>` +
+      `<circle class="handle" data-place="${esc(pl.id)}" cx="${fmt(bx)}" cy="${fmt(by)}" r="${r}" fill="var(--node-fill)" stroke="${on ? 'var(--accent)' : 'var(--node-stroke)'}" stroke-width="${1.5 * k}"${pl.hidden ? ` stroke-dasharray="${2.5 * k} ${2 * k}"` : ''}/>` +
       `<text x="${fmt(bx)}" y="${fmt(by)}" dy="0.35em" text-anchor="middle" font-size="${11 * k}" pointer-events="none">${esc(pl.icon)}</text>` +
       `<text x="${fmt(tx)}" y="${fmt(ty)}" dy="0.35em" text-anchor="${side ? (g.n[0] > 0 ? 'start' : 'end') : 'middle'}" font-size="${fs}" font-weight="600" fill="var(--text)" stroke="var(--halo)" stroke-width="${2.5 * k}" paint-order="stroke" pointer-events="none">${esc(pl.name)}</text></g>`;
   }
@@ -1620,13 +1629,13 @@ function placesSvg(k, faintEdge) {
 let placesKey = null;
 function renderPlaces(force) {
   const byKey = new Map(G.edges.map(e => [e.key, e]));
-  const key = JSON.stringify([places.map(pl => [pl.id, pl.name, pl.icon, pl.key]), selPlace]);
+  const key = JSON.stringify([places.map(pl => [pl.id, pl.name, pl.icon, pl.key, !!pl.hidden]), selPlace]);
   if (key === placesKey && !force) return;
   placesKey = key;
   $('placeList').innerHTML = places.map(pl => {
     const e = byKey.get(pl.key);
     return `<div class="plRow${selPlace === pl.id ? ' on' : ''}" data-pl="${esc(pl.id)}"><span class="ic">${esc(pl.icon)}</span><span class="nm2">${esc(pl.name)}</span>` +
-      `<span class="at">${e ? esc(roadText(e.road) || '') : '⚠ not on a drawn road'}</span></div>`;
+      `<span class="at">${pl.hidden ? 'hidden · ' : ''}${e ? esc(roadText(e.road) || '') : '⚠ not on a drawn road'}</span></div>`;
   }).join('');
 }
 function renderPlaceResults() {
@@ -1913,6 +1922,9 @@ function renderSel() {
       <input type="text" id="plName" value="${esc(pl.name)}">
       <div class="field">Icon and type</div>
       <div class="row" style="gap:6px"><input type="text" id="plIcon" value="${esc(pl.icon)}" style="width:44px;text-align:center"><input type="text" id="plType" value="${esc(pl.type)}" placeholder="e.g. Grocery store"></div>
+      <label class="row" style="gap:6px" title="Kept in the map's data with its spot, but not drawn on the public map or found by its search"><input type="checkbox" id="plHidden"${pl.hidden ? ' checked' : ''}>Hidden: not shown on the public map</label>
+      <label class="row" style="gap:6px" title="Left off the public map when it's zoomed out, like the roads and junctions there"><input type="checkbox" id="plLod"${pl.lod ? ' checked' : ''}>Only when zoomed in</label>
+      <label class="row" style="gap:6px" title="Like a corner store: drawn coming out of the junction at the nearer end of its road, between the roads on its side"><input type="checkbox" id="plCorner"${pl.corner ? ' checked' : ''}>At the junction</label>
       <div class="row"><button id="plFlip" title="Put it on the other side of the road">Other side</button>${pl.osm ? '<button id="plSnap" title="Put it back on the road nearest the real place">Back to its nearest road</button>' : ''}<button id="plRemove">Remove</button></div>`;
     const edit = (f) => (ev) => {
       const v = ev.target.value.trim();
@@ -1921,9 +1933,17 @@ function renderSel() {
     };
     $('plName').onchange = edit('name'); $('plIcon').onchange = edit('icon'); $('plType').onchange = edit('type');
     $('plFlip').onclick = () => { pushHistory(); pl.side = -pl.side; markDirty(); render(); placePop(); };
+    $('plLod').onchange = (ev) => { pushHistory(); if (ev.target.checked) pl.lod = 1; else delete pl.lod; markDirty(); render(); };
+    $('plCorner').onchange = (ev) => {
+      pushHistory();
+      if (ev.target.checked) { pl.corner = true; pl.t = pl.t < 0.5 ? 0 : 1; } else delete pl.corner;
+      if (!pl.osm) [pl.lat, pl.lon] = unproj(realAt(G.edges.find(x => x.key === pl.key), pl.t)).map(v => +v.toFixed(6));
+      markDirty(); render(); placePop();
+    };
+    $('plHidden').onchange = (ev) => { pushHistory(); if (ev.target.checked) pl.hidden = true; else delete pl.hidden; markDirty(); render(); renderPlaces(); };
     if ($('plSnap')) $('plSnap').onclick = () => {
       const p = proj(pl.lat, pl.lon), s = snapReal(p, osmPlaces.find(o => o.osm === pl.osm)?.street);
-      pushHistory(); Object.assign(pl, { key: s.e.key, t: +s.t.toFixed(5), side: realSide(s.e, s.t, p) }); markDirty(); render(); renderSel();
+      pushHistory(); Object.assign(pl, { key: s.e.key, t: pl.corner ? (s.t < 0.5 ? 0 : 1) : +s.t.toFixed(5), side: realSide(s.e, s.t, p) }); markDirty(); render(); renderSel();
     };
     $('plRemove').onclick = () => { pushHistory(); places = places.filter(x => x !== pl); selPlace = null; markDirty(); render(); renderSel(); renderPlaceResults(); };
     placePop();
@@ -2712,8 +2732,9 @@ svg.addEventListener('pointermove', (ev) => {
     if (!drag.moved) { history.push(drag.snap); drag.moved = true; }
     const pl = places.find(x => x.id === drag.id), s = pl && schemSnap(p, 60 * upp());
     if (!s) return;
-    Object.assign(pl, { key: s.e.key, t: +s.t.toFixed(5), side: s.side });
-    if (!pl.osm) [pl.lat, pl.lon] = unproj(realAt(s.e, s.t)).map(v => +v.toFixed(6));
+    const t = pl.corner ? (s.t < 0.5 ? 0 : 1) : +s.t.toFixed(5);   // a corner place stays at a junction
+    Object.assign(pl, { key: s.e.key, t, side: s.side });
+    if (!pl.osm) [pl.lat, pl.lon] = unproj(realAt(s.e, t)).map(v => +v.toFixed(6));
     render();
   } else if (drag.type === 'nodes' || drag.type === 'bend') {
     const dx = p[0] - drag.start[0], dy = p[1] - drag.start[1];

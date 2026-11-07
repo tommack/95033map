@@ -37,6 +37,32 @@ test('every place is on a line of its map', () => {
   }
 });
 
+test('a hidden place keeps its spot in the data, marked hidden; the others carry no mark', () => {
+  const l = structuredClone(layout), p = l.places.find((x) => !x.hidden);
+  p.hidden = true;
+  const places = buildAll(graph, l, areaLayouts, slugs).map.places;
+  const q = places.find((x) => x.name === p.name);
+  assert.equal(q.hidden, true);
+  assert.equal(q.t, p.t);
+  const inLayout = new Map(l.places.map((x) => [x.name, !!x.hidden]));
+  for (const x of places) assert.equal('hidden' in x, inLayout.get(x.name), x.name);
+});
+
+test('a corner place keeps its mark and sits at an end of its line', () => {
+  const l = structuredClone(layout), p = l.places.find((x) => !x.corner);
+  Object.assign(p, { corner: true, t: 0 });
+  const q = buildAll(graph, l, areaLayouts, slugs).map.places.find((x) => x.name === p.name);
+  assert.equal(q.corner, true);
+  assert.equal(q.t, 0);
+  for (const x of built.map.places) if (x.corner) assert.ok(x.t === 0 || x.t === 1, x.name);
+});
+
+test('a place shown only zoomed in keeps its zoom level', () => {
+  const l = structuredClone(layout), p = l.places.find((x) => !x.lod);
+  p.lod = 1;
+  assert.equal(buildAll(graph, l, areaLayouts, slugs).map.places.find((x) => x.name === p.name).lod, 1);
+});
+
 test('each neighborhood with its own map gets one, linked from the main map', () => {
   for (const [slug, m] of Object.entries(built.areas)) {
     assert.equal(m.area.slug, slug);
