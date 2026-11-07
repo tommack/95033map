@@ -31,7 +31,7 @@ const MAX_BODY = 64 * 1024 * 1024;
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript',
   '.css': 'text/css', '.json': 'application/json', '.geojson': 'application/geo+json',
-  '.png': 'image/png', '.svg': 'image/svg+xml', '.md': 'text/markdown; charset=utf-8',
+  '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.md': 'text/markdown; charset=utf-8',
 };
 
 async function readJSON(file) {

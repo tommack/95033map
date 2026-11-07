@@ -1,5 +1,5 @@
 // Writes site/recent/index.html, the page at 95033map.com/recent: the map's own page with its
-// title changed and its files (style, script, icons) one folder up. app.js sees the path and draws the recent reports.
+// title changed and its files (style, script, icons, manifest) one folder up. app.js sees the path and draws the recent reports.
 //   node scripts/build-recent-page.mjs   (build-site.mjs runs it too)
 
 import { promises as fs } from 'node:fs';
@@ -18,6 +18,7 @@ export async function buildRecentPage() {
   swap('src="app.js"', 'src="../app.js"');
   swap('href="icon.svg"', 'href="../icon.svg"');
   swap('href="apple-touch-icon.png"', 'href="../apple-touch-icon.png"');
+  swap('href="manifest.webmanifest"', 'href="../manifest.webmanifest"');
   html = html.replace(/<title>[^<]*<\/title>/, '<title>Recent reports · 95033 Road Map</title>')
     .replace(/<meta name="description" content="[^"]*">/,
       '<meta name="description" content="What neighbors have reported lately on the roads of the Santa Cruz Mountains (95033): trees down, closures, loose animals.">');
