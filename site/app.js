@@ -16,7 +16,7 @@
 
 import { buildAll, shortName } from './build-map.mjs';
 import {
-  esc, dist, lerp, clamp, fmt, unit, pathLen, overlaps, segHitsBox, segProject, anchorsAt, anchorsProject,
+  esc, dist, lerp, clamp, fmt, unit, pathLen, overlaps, shrink, segHitsBox, segProject, anchorsAt, anchorsProject,
   chevrons as chevronSize, chevronSvg, tipText, areaSvg, placeFit, placeSpot, cornerSpot, cornerBadge, awayFrom, bunchSideRoads, bunchBranch,
   TIER_W, BUNCH_PX, PLACE_R, BACK_ROAD, tierColor,
 } from './shared.mjs';
@@ -274,7 +274,18 @@ function applyMorph(m, keep) {
 }
 
 // ---------- view ----------
-function size() { const r = svg.getBoundingClientRect(); return [r.width || 1, r.height || 1]; }
+// The map's box on screen, kept until it changes size: reading it after the map's been redrawn makes the
+// browser lay the page out again there and then, which on every wheel event added up during a zoom.
+let svgRect = null;
+function mapRect() {
+  if (svgRect) return svgRect;
+  const r = svg.getBoundingClientRect();
+  if (r.width) svgRect = r;
+  return r;
+}
+new ResizeObserver(() => { svgRect = null; }).observe(svg);
+window.addEventListener('resize', () => { svgRect = null; });
+function size() { const r = mapRect(); return [r.width || 1, r.height || 1]; }
 const upp = () => view.w / size()[0];   // map meters per screen pixel
 function toMap(cx, cy) { const k = upp(); return [view.x + cx * k, view.y + cy * k]; }
 
@@ -544,7 +555,28 @@ function drawLines() {
 }
 
 let drawn = { k: null };
-let pending = false, labelTimer = null;
+let pending = false;
+// Labels during a zoom: a pass at most every LABEL_EVERY ms while the zoom goes on (longer if passes are
+// slow), and one more LABEL_SETTLE ms after it stops, the only one that takes side roads off (see
+// drawLabels). Labels shown before keep their places (LABEL_STICK), so they don't jump about as it goes.
+const LABEL_EVERY = 80, LABEL_SETTLE = 150, LABEL_STICK = 5;
+let labelTimer = null, settleTimer = null, labelAt = -Infinity, labelCost = 0;
+function scheduleLabels() {
+  clearTimeout(settleTimer);
+  if (!drawn.labels) { settleTimer = setTimeout(() => runLabels(true), 0); return; }
+  settleTimer = setTimeout(() => runLabels(true), LABEL_SETTLE);
+  // While the map morphs the labels are faded out: just the one when it's done.
+  if (labelTimer || morphing) return;
+  const every = Math.max(LABEL_EVERY, labelCost * 8);
+  labelTimer = setTimeout(() => runLabels(false), Math.max(0, labelAt + every - performance.now()));
+}
+function runLabels(settled) {
+  clearTimeout(labelTimer); labelTimer = null;
+  const t = performance.now();
+  // At the zoom on screen (drawn.k), which a wheel event since the last frame may have moved on from.
+  drawLabels(drawn.k ?? upp(), settled);
+  labelAt = performance.now(); labelCost = labelAt - t;
+}
 function draw() {
   if (pending) return;
   pending = true;
@@ -569,9 +601,8 @@ function draw() {
       drawn.k = k;
       drawNodes(k);
       drawMarks(k);
-      // Labels are placed once the zoom settles; until then the old ones scale along.
-      clearTimeout(labelTimer);
-      labelTimer = setTimeout(() => drawLabels(upp()), drawn.labels ? 120 : 0);
+      labelScale(k);
+      scheduleLabels();
     } else drawMarks(k);
   });
 }
@@ -734,8 +765,29 @@ function namedAtBranch(e) {
 
 // Road names along their lines (major roads first, bigger and in color), one per straight
 // run; then what's at the end of each exit, branch and open-ended stub.
-function drawLabels(k) {
+//
+// Each label has a key; what was placed last time (labelsBefore: key -> where it went) goes first among
+// its kind, in the same spot if it still fits, and may overlap the others by LABEL_STICK pixels.
+// settled: false for the passes during a zoom, which leave side roads that were drawn (and their
+// brackets) drawn even if their names no longer fit; the pass once the zoom stops takes them off.
+let labelsBefore = new Map(), labelsNow = new Map();
+// The labels are sized for the zoom of the pass that placed them (labelK); in between, as the map zooms,
+// they're scaled back to that size on screen, each about its own point, so they don't grow and shrink.
+let labelK = null;
+function labelScale(k) { if (labelK) $('gLabels').style.setProperty('--ls', (k / labelK).toFixed(4)); }
+function drawLabels(k, settled = true) {
   drawn.labels = true;
+  labelsNow = new Map();
+  const stick = (key) => (labelsBefore.has(key) ? LABEL_STICK * k : 0);
+  // Room for box, for the label with this key (closer for one that was there).
+  const free = (box, key) => !overlaps(stick(key) ? shrink(box, stick(key)) : box, placed);
+  // Those that were placed last time first, otherwise in the order given.
+  const before = (list, key) => [...list.filter((x) => labelsBefore.has(key(x))), ...list.filter((x) => !labelsBefore.has(key(x)))];
+  // Its options with the one it took last time (id(option) is what was kept) tried first.
+  const lastFirst = (list, key, id) => {
+    const hit = labelsBefore.has(key) && list.find((o) => id(o) === labelsBefore.get(key));
+    return hit ? [hit, ...list.filter((o) => o !== hit)] : list;
+  };
   const placed = M.nodes.filter((n) => (!n.kind || n.kind === 'closed' || n.kind === 'area') && shown(n) && !plainNow(n)).map((n) => {
     const r = n.kind === 'area' ? areaR(n, k) : 4 * k;
     return { x0: n.x - r, y0: n.y - r, x1: n.x + r, y1: n.y + r };
@@ -744,6 +796,8 @@ function drawLabels(k) {
   for (const { c: [x, y], r } of shownPlaces) placed.push({ x0: x - r, y0: y - r, x1: x + r, y1: y + r });
   let out = '';
   const halo = (w) => `stroke="var(--halo)" stroke-width="${w * k}" stroke-linejoin="round" paint-order="stroke"`;
+  // The point a label keeps still while it's held at its size between passes (see labelScale).
+  const origin = (x, y) => `style="transform-origin:${fmt(x)}px ${fmt(y)}px"`;
   // Side roads' names, at a stub's tip or listed at a collapsed branch's: small, gray, italic.
   const stubText = `font-style="italic" fill="var(--muted)" ${halo(2.5)}`;
 
@@ -752,7 +806,7 @@ function drawLabels(k) {
     if ((n.kind !== 'through' && n.kind !== 'exit') || !n.edges.length || !shown(n)) continue;
     const e = n.edges[0], name = isPlaceholder(e.road) ? null : roadText(e.road);
     const lines = [...(name ? [name] : []), ...(n.label ? [[n.label, `font-weight="400" font-size="${10.5 * k}" fill="var(--muted)"`]] : [])];
-    if (lines.length) out += tipLabel(n, lines, 12, 600, k, placed, `font-weight="600" fill="${e.style.color}" ${halo(3)}`);
+    if (lines.length) out += tipLabel(n, lines, 12, 600, k, placed, `font-weight="600" fill="${e.style.color}" ${halo(3)}`, null, `x:${n.id}`);
   }
   for (const n of M.nodes) {
     // A closure's label ("No More Bridge") only once you're zoomed in past the local roads.
@@ -760,9 +814,9 @@ function drawLabels(k) {
     const [ux] = tipDir(n), r = 8.5 * k, fs = 11 * k, tw = textWidth(n.label, 11, 600) * k, above = Math.abs(ux) > 0.7;
     const tx = above ? n.x : n.x + r + 10 * k, ty = above ? n.y - r - 13 * k : n.y;
     const box = above ? { x0: tx - tw / 2, x1: tx + tw / 2, y0: ty - fs * 0.6, y1: ty + fs * 0.6 } : { x0: tx, x1: tx + tw, y0: ty - fs * 0.6, y1: ty + fs * 0.6 };
-    if (overlaps(box, placed)) continue;
-    placed.push(box);
-    out += `<text x="${fmt(tx)}" y="${fmt(ty)}" dy="0.35em" text-anchor="${above ? 'middle' : 'start'}" font-size="${fs}" font-weight="600" fill="#d93025" ${halo(3)}>${esc(n.label)}</text>`;
+    if (!free(box, `c:${n.id}`)) continue;
+    placed.push(box); labelsNow.set(`c:${n.id}`, 0);
+    out += `<text x="${fmt(tx)}" y="${fmt(ty)}" ${origin(tx, ty)} dy="0.35em" text-anchor="${above ? 'middle' : 'start'}" font-size="${fs}" font-weight="600" fill="#d93025" ${halo(3)}>${esc(n.label)}</text>`;
   }
   // Neighborhood names, in small spaced capitals like area names on a map: inside the circle when
   // it's big enough, otherwise on the free side furthest from its roads, and left off if there's no room.
@@ -774,21 +828,22 @@ function drawLabels(k) {
     const style = `font-size="${fs}" font-weight="600" letter-spacing="${(AREA_FS * 0.08).toFixed(2)}" fill="var(--muted)" ${halo(3)}`;
     if (inside) {
       const y0 = n.y - ((inside.length - 1) * lh) / 2;
-      out += inside.map((t, i) => `<text x="${fmt(n.x)}" y="${fmt(y0 + i * lh)}" dy="0.35em" text-anchor="middle" ${style}>${esc(t)}</text>`).join('');
+      out += inside.map((t, i) => `<text x="${fmt(n.x)}" y="${fmt(y0 + i * lh)}" ${origin(n.x, n.y)} dy="0.35em" text-anchor="middle" ${style}>${esc(t)}</text>`).join('');
       continue;
     }
     const text = n.label.toUpperCase(), tw = areaTextW(text) * k;
     const angs = n.edges.map((e) => { const p = anchorPts(e), q = e.A === n ? p[1] : p[p.length - 2]; return Math.atan2(q[1] - n.y, q[0] - n.x); });
     const away = (a) => Math.min(Math.PI, ...angs.map((b) => Math.abs(((a - b) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI)));
-    const sides = [[0, 'start'], [Math.PI, 'end'], [Math.PI / 2, 'middle'], [-Math.PI / 2, 'middle']].sort((u, v) => away(v[0]) - away(u[0]));
-    for (const [a, anchor] of sides) {
-      if (away(a) < 0.5) break;   // right on top of one of its roads
+    const key = `a:${n.id}`;
+    const sides = [[0, 'start', 0], [Math.PI, 'end', 1], [Math.PI / 2, 'middle', 2], [-Math.PI / 2, 'middle', 3]].sort((u, v) => away(v[0]) - away(u[0]));
+    // Not right on top of one of its roads.
+    for (const [a, anchor, i] of lastFirst(sides.filter(([a]) => away(a) >= 0.5), key, (o) => o[2])) {
       const gap = r + 5 * k, tx = n.x + Math.cos(a) * gap, ty = n.y + Math.sin(a) * (gap + fs * 0.3);
       const x0 = anchor === 'start' ? tx : anchor === 'end' ? tx - tw : tx - tw / 2;
       const box = { x0, x1: x0 + tw, y0: ty - fs * 0.6, y1: ty + fs * 0.6 };
-      if (overlaps(box, placed)) continue;
-      placed.push(box);
-      out += `<text x="${fmt(tx)}" y="${fmt(ty)}" dy="0.35em" text-anchor="${anchor}" ${style}>${esc(text)}</text>`;
+      if (!free(box, key)) continue;
+      placed.push(box); labelsNow.set(key, i);
+      out += `<text x="${fmt(tx)}" y="${fmt(ty)}" ${origin(tx, ty)} dy="0.35em" text-anchor="${anchor}" ${style}>${esc(text)}</text>`;
       break;
     }
   }
@@ -831,7 +886,8 @@ function drawLabels(k) {
     e: r.e, major: !!(r.e.style.major || isHighway(r.e)), len: r.hi - r.lo,
     a: [r.o[0] + r.ux * r.lo, r.o[1] + r.uy * r.lo], b: [r.o[0] + r.ux * r.hi, r.o[1] + r.uy * r.hi],
   }));
-  cands.sort((u, v) => (v.major - u.major) || (v.len - u.len));
+  const runKey = (c) => `r:${c.e.key}`, had = (c) => +labelsBefore.has(runKey(c));
+  cands.sort((u, v) => (v.major - u.major) || (had(v) - had(u)) || (v.len - u.len));
   const byName = new Map();
   const nameRuns = (list) => { for (const c of list) {
     const px = c.major ? 13 : 11, fs = px * k, weight = c.major ? 600 : 400;
@@ -847,16 +903,17 @@ function drawLabels(k) {
     const cos = Math.abs(Math.cos(ang)), sin = Math.abs(Math.sin(ang));
     const hw = (tw * cos + fs * sin) / 2, hh = (tw * sin + fs * cos) / 2;
     let spot = null;
-    for (const side of [-1, 1]) {
+    const key = runKey(c);
+    for (const side of lastFirst([-1, 1], key, (o) => o)) {
       const cx = mid[0] + nx * off * side, cy = mid[1] + ny * off * side;
       const box = { x0: cx - hw, y0: cy - hh, x1: cx + hw, y1: cy + hh };
-      if (!overlaps(box, placed)) { spot = { cx, cy, box }; break; }
+      if (free(box, key)) { spot = { cx, cy, box, side }; break; }
     }
     if (!spot) continue;
-    placed.push(spot.box);
+    placed.push(spot.box); labelsNow.set(key, spot.side);
     if (!byName.has(c.e.road)) byName.set(c.e.road, []);
     byName.get(c.e.road).push(mid);
-    out += `<text transform="translate(${fmt(spot.cx)} ${fmt(spot.cy)}) rotate(${((ang * 180) / Math.PI).toFixed(1)})" text-anchor="middle" dy="0.35em" font-size="${fs}"` +
+    out += `<text style="transform:translate(${fmt(spot.cx)}px,${fmt(spot.cy)}px) rotate(${((ang * 180) / Math.PI).toFixed(1)}deg) scale(var(--ls,1))" text-anchor="middle" dy="0.35em" font-size="${fs}"` +
       `${c.major ? ' font-weight="600"' : ''} fill="${c.major || (c.e.tier || 4) < BACK_ROAD ? c.e.style.color : 'var(--muted)'}" ${halo(3)}>${esc(text)}</text>`;
   } };
   // The main roads' names first, before the side roads' names at bunches, branches and stubs: with
@@ -864,11 +921,11 @@ function drawLabels(k) {
   nameRuns(cands.filter((c) => c.major));
 
   const named = new Set();
-  for (const b of bunches) {
+  for (const b of before(bunches, (b) => `b:${bunchKey(b)}`)) {
     // A long list is cut short: the rest are found by zooming in.
     const lines = b.names.length > 6 ? [...b.names.slice(0, 5), `+ ${b.names.length - 5} more`] : b.names;
     const [x, y] = bunchTip(b, k);
-    const label = lines.length ? tipLabel({ x, y, kind: 'branch', dir: b.dir }, lines, 10, 400, k, placed, stubText) : '';
+    const label = lines.length ? tipLabel({ x, y, kind: 'branch', dir: b.dir }, lines, 10, 400, k, placed, stubText, null, `b:${bunchKey(b)}`) : '';
     if (label) { out += label; named.add(bunchKey(b)); }
   }
 
@@ -889,22 +946,21 @@ function drawLabels(k) {
   // named either; their stubs are drawn all the same, since they're real roads.
   const real = morph < 1;
   // Side roads collapsed by hand into one branch: the same, with their names listed at its tip.
-  for (const n of M.nodes) {
-    if (n.kind !== 'branch' || !n.edges.length) continue;
+  const stubKey = (n) => `s:${n.id}`;
+  for (const n of before(M.nodes.filter((n) => n.kind === 'branch' && n.edges.length), stubKey)) {
     const e = realEdges(n)[0];
     if (!e || !drawable(e)) continue;
     if (real) { show.add(e); continue; }
     const lines = (n.label || '').split(/\s*,\s*/).filter(Boolean).map(shortName);
-    const label = lines.length ? tipLabel(n, lines, 10, 400, k, placed, stubText, acrossLine(e)) : '';
+    const label = lines.length ? tipLabel(n, lines, 10, 400, k, placed, stubText, acrossLine(e), stubKey(n)) : '';
     if (label) { out += label; show.add(e); }
   }
-  for (const n of M.nodes) {
-    if (n.kind !== 'open' || !n.edges.length) continue;
+  for (const n of before(M.nodes.filter((n) => n.kind === 'open' && n.edges.length), stubKey)) {
     const e = n.edges[0];
     if (!drawable(e)) continue;
     if (real) { show.add(e); continue; }
     if (e.full) { fullStubs.push(n); continue; }
-    const label = isPlaceholder(e.road) ? '' : tipLabel(n, [roadText(e.road)], 10, 400, k, placed, stubText, acrossLine(e));
+    const label = isPlaceholder(e.road) ? '' : tipLabel(n, [roadText(e.road)], 10, 400, k, placed, stubText, acrossLine(e), stubKey(n));
     if (label) { out += label; show.add(e); }
   }
 
@@ -915,8 +971,9 @@ function drawLabels(k) {
   // icon says what kind of place it is, and some names are very long.
   // A corner place's name has lines on two sides of it, so it tries beside the badge and then above or
   // below it, and takes the first spot that crosses neither a line nor another label.
-  for (const { q, n, r, c: [x, y] } of shownPlaces) {
+  for (const { q, n, r, c: [x, y] } of before(shownPlaces, (p) => `p:${p.q.slug}`)) {
     if (k >= PLACE_NAME_K) break;
+    const key = `p:${q.slug}`;
     const name = q.name;
     const fs = 10.5 * k, tw = textWidth(name, 10.5, 600) * k, gap = r + 4 * k;
     // Beside the badge (side), or above or below it: centered, or (align) running off one way from its edge.
@@ -924,7 +981,7 @@ function drawLabels(k) {
       const tx = side ? x + sx * gap : x - align * r, ty = side ? y : y + sy * (gap + fs * 0.5);
       const anchor = side ? (sx > 0 ? 'start' : 'end') : align > 0 ? 'end' : align < 0 ? 'start' : 'middle';
       const x0 = anchor === 'start' ? tx : anchor === 'end' ? tx - tw : tx - tw / 2;
-      return { tx, ty, anchor, box: { x0, x1: x0 + tw, y0: ty - fs * 0.6, y1: ty + fs * 0.6 } };
+      return { tx, ty, anchor, id: `${side}${sx}${sy}${align}`, box: { x0, x1: x0 + tw, y0: ty - fs * 0.6, y1: ty + fs * 0.6 } };
     };
     const sx = Math.sign(n[0]) || 1, sy = Math.sign(n[1]) || 1, side = Math.abs(n[0]) >= 0.5;
     let spots = [spotFor(side, sx, sy)];
@@ -934,10 +991,10 @@ function drawLabels(k) {
       spots = [spots[0], spotFor(!side, sx, sy), spotFor(false, sx, sy, -sx), spotFor(false, sx, sy, sx),
         spotFor(false, sx, -sy, -sx), spotFor(false, sx, -sy, sx), spotFor(true, -sx, sy)].filter((s) => !crosses(s.box));
     }
-    const s = spots.find((s) => !overlaps(s.box, placed));
+    const s = lastFirst(spots, key, (o) => o.id).find((s) => free(s.box, key));
     if (!s) continue;
-    placed.push(s.box);
-    out += `<text x="${fmt(s.tx)}" y="${fmt(s.ty)}" dy="0.35em" text-anchor="${s.anchor}" font-size="${fs}" font-weight="600" fill="var(--text)" ${halo(3)}>${esc(name)}</text>`;
+    placed.push(s.box); labelsNow.set(key, s.id);
+    out += `<text x="${fmt(s.tx)}" y="${fmt(s.ty)}" ${origin(s.tx, s.ty)} dy="0.35em" text-anchor="${s.anchor}" font-size="${fs}" font-weight="600" fill="var(--text)" ${halo(3)}>${esc(name)}</text>`;
   }
 
   // A U road drawn as it is: its name past its far point, unless its line got one.
@@ -947,7 +1004,8 @@ function drawLabels(k) {
     const a = [e.A.x, e.A.y], c = unit(a, [e.B.x, e.B.y]), out_ = (q) => (q[0] - a[0]) * -c[1] + (q[1] - a[1]) * c[0];
     const far = anchorPts(e).reduce((f, q) => (Math.abs(out_(q)) > Math.abs(out_(f)) ? q : f), a), side = Math.sign(out_(far));
     const name = roadText(e.road);
-    if (side) out += tipText(far, [-c[1] * side, c[0] * side], 6 * k, [name], 11 * k, textWidth(name, 11, 400) * k, placed, `fill="var(--muted)" ${halo(3)}`);
+    const label = side ? tipText(far, [-c[1] * side, c[0] * side], 6 * k, [name], 11 * k, textWidth(name, 11, 400) * k, placed, `fill="var(--muted)" ${halo(3)}`, null, stick(`u:${e.key}`)) : '';
+    if (label) { out += label; labelsNow.set(`u:${e.key}`, 0); }
   }
   for (const n of fullStubs) {
     const e = n.edges[0];
@@ -955,12 +1013,19 @@ function drawLabels(k) {
     // off it (the road goes one way, the line carries on as another road), it's named at its tip,
     // since nobody would follow the road round the corner.
     const onLine = byName.has(e.road) && carriesOn(e);
-    const label = onLine || isPlaceholder(e.road) ? '' : tipLabel(n, [roadText(e.road)], 10, 400, k, placed, stubText, acrossLine(e));
+    const label = onLine || isPlaceholder(e.road) ? '' : tipLabel(n, [roadText(e.road)], 10, 400, k, placed, stubText, acrossLine(e), stubKey(n));
     if (label) out += label;
     if (label || onLine) show.add(e);
   }
   $('gLabels').innerHTML = out;
+  labelK = k; labelScale(k);
   if (!morphing) $('gLabels').classList.remove('fade');
+  labelsBefore = labelsNow;
+  // During a zoom, side roads only come: one whose name lost its spot goes once the zoom stops.
+  if (!settled) {
+    for (const e of stubShow) if (drawable(e)) show.add(e);
+    for (const b of bunchShow) named.add(b);
+  }
   const same = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
   const stubsChanged = !same(show, stubShow), bunchesChanged = !same(named, bunchShow);
   bunchShow = named;
@@ -972,10 +1037,13 @@ function drawLabels(k) {
   if (stubsChanged || bunchesChanged) drawNodes(k);
 }
 
-function tipLabel(n, lines, px, weight, k, placed, attrs, blocked) {
+// key: the label's (see drawLabels); one placed last time may overlap the others a little.
+function tipLabel(n, lines, px, weight, k, placed, attrs, blocked, key) {
   const tw = Math.max(...lines.map((l) => textWidth(Array.isArray(l) ? l[0] : l, px, weight))) * k;
   const gap = n.kind === 'through' || n.kind === 'exit' ? chevrons(n.edges[0], k).extent + 5 * k : (n.kind === 'branch' ? 9 : 5) * k;
-  return tipText([n.x, n.y], n.dir || tipDir(n), gap, lines, px * k, tw, placed, attrs, blocked);
+  const label = tipText([n.x, n.y], n.dir || tipDir(n), gap, lines, px * k, tw, placed, attrs, blocked, labelsBefore.has(key) ? LABEL_STICK * k : 0);
+  if (label) labelsNow.set(key, 0);
+  return label;
 }
 
 // Whether stub e carries straight on from its road at the junction it starts from: the straightest way on
@@ -1626,13 +1694,13 @@ svg.addEventListener('pointerup', endPointer);
 svg.addEventListener('pointercancel', endPointer);
 svg.addEventListener('wheel', (ev) => {
   ev.preventDefault();
-  const r = svg.getBoundingClientRect();
+  const r = mapRect();
   zoomAt(Math.exp(ev.deltaY * (ev.ctrlKey ? 0.01 : 0.0015)), ev.clientX - r.left, ev.clientY - r.top);
   scheduleHover(ev);
 }, { passive: false });
 
 function tap(ev) {
-  const r = svg.getBoundingClientRect(), cx = ev.clientX - r.left, cy = ev.clientY - r.top;
+  const r = mapRect(), cx = ev.clientX - r.left, cy = ev.clientY - r.top;
   const now = performance.now();
   if (lastTap && now - lastTap.time < 320 && Math.hypot(cx - lastTap.x, cy - lastTap.y) < 24) {
     lastTap = null;
@@ -1710,7 +1778,7 @@ function hover() {
   hoverRaf = 0;
   const ev = hoverEv, tip = $('tip');
   const h = ev && M && !ptrs.size && sel?.type !== 'place' ? (() => {
-    const r = svg.getBoundingClientRect(), k = upp();
+    const r = mapRect(), k = upp();
     return hitAt(toMap(ev.clientX - r.left, ev.clientY - r.top), k, 10 * k);
   })() : null;
   svg.classList.toggle('hot', !!h);

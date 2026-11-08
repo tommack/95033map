@@ -78,6 +78,8 @@ svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, s
 #morphCtl.real .thumb { transform: none; }
 /* While the map morphs, the labels are faded out (setMorph). */
 #gLabels { transition: opacity .15s; }
+/* Held at their size on screen between label passes (--ls, set by app.js), each about its transform-origin. */
+#gLabels > text { transform-box: view-box; transform: scale(var(--ls, 1)); text-rendering: geometricPrecision; }
 #gLabels.fade { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { #morphCtl .thumb, #morphCtl button, #gLabels { transition: none; } }
 

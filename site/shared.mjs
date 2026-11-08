@@ -27,6 +27,12 @@ export const unit = (a, b) => { const L = dist(a, b) || 1; return [(b[0] - a[0])
 export const pathLen = (pts) => pts.reduce((a, q, i) => a + (i ? dist(pts[i - 1], q) : 0), 0);
 // Do two boxes ({ x0, y0, x1, y1 }) overlap, or a box and any in a list?
 export const overlaps = (b, list) => list.some((o) => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0);
+// A box made smaller by d each side (no further than its middle): a label that was there already may
+// overlap the others by that much.
+export function shrink(b, d) {
+  const dx = Math.min(d, (b.x1 - b.x0) / 2), dy = Math.min(d, (b.y1 - b.y0) / 2);
+  return { x0: b.x0 + dx, x1: b.x1 - dx, y0: b.y0 + dy, y1: b.y1 - dy };
+}
 // Whether segment a–b passes through box (clipped against it, Liang–Barsky).
 export function segHitsBox(a, b, box) {
   let t0 = 0, t1 = 1;
@@ -86,7 +92,8 @@ export function chevronSvg(x, y, ux, uy, c, col) {
 // below for one ending up or down. lines: strings or [text, extra tspan attributes]; tw: the widest
 // line's width. Returns '' (and places nothing) if it would overlap a box in placed.
 // blocked(box), if given, can rule out more than the labels already placed (lines it would cross).
-export function tipText(tip, [dx, dy], gap, lines, fs, tw, placed, attrs, blocked) {
+// slack: how far it may overlap them (see shrink).
+export function tipText(tip, [dx, dy], gap, lines, fs, tw, placed, attrs, blocked, slack = 0) {
   lines = lines.map((l) => (Array.isArray(l) ? l : [l, '']));
   const lh = fs * 1.2, th = lh * lines.length;
   let x = tip[0] + dx * gap, y = tip[1] + dy * gap, anchor = 'middle', box;
@@ -97,10 +104,11 @@ export function tipText(tip, [dx, dy], gap, lines, fs, tw, placed, attrs, blocke
     y += ((dy > 0 ? 1 : -1) * th) / 2;
     box = { x0: x - tw / 2, x1: x + tw / 2, y0: y - th / 2, y1: y + th / 2 };
   }
-  if (overlaps(box, placed) || blocked?.(box)) return '';
+  if (overlaps(slack ? shrink(box, slack) : box, placed) || blocked?.(box)) return '';
   placed.push(box);
   const y0 = y - th / 2 + lh / 2;
-  return `<text text-anchor="${anchor}" font-size="${fs}" ${attrs}>` +
+  // transform-origin: where it's held still if the map scales it (the public map, between label passes).
+  return `<text text-anchor="${anchor}" font-size="${fs}" style="transform-origin:${fmt(x)}px ${fmt(y)}px" ${attrs}>` +
     lines.map(([l, a], i) => `<tspan x="${fmt(x)}" y="${fmt(y0 + i * lh)}" dy="0.35em"${a ? ' ' + a : ''}>${esc(l)}</tspan>`).join('') + '</text>';
 }
 
