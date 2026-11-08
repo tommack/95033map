@@ -4,6 +4,7 @@ import {
   TIER_W, MINOR as MINOR_COLOR, BUNCH_PX, tierColor,
 } from '../../site/shared.mjs';
 import { placeKind } from '../place-kinds.mjs';
+import { ICONS, iconName, placeIcon, glyphSvg, badgeHtml } from '../../site/place-icons.mjs';
 
 const STATE_VERSION = 1;
 // ?area=g35: the map of one neighborhood (the area group g35 in the main layout), saved on its own.
@@ -1614,13 +1615,14 @@ function placesSvg(k, faintEdge, coarse) {
     if (g.corner) g.at = [g.at[0] + g.n[0] * 6 * k, g.at[1] + g.n[1] * 6 * k];   // past the junction's dot
     const { r, c: [bx, by] } = g.corner ? cornerBadge(g, 6 * k, Math.max(lineWidth(g.e), ...g.lines.map(lineWidth)), k) : placeBadge(g, lineWidth(g.e), k), on = selPlace === pl.id;
     placeBadges.set(pl.id, [bx, by]);
-    const fs = 10 * k, gap = r + 4 * k, side = Math.abs(g.n[0]) >= 0.5;
+    const fs = 10 * k, gap = r + 4 * k, side = Math.abs(g.n[0]) >= 0.5, [glyph, color] = placeIcon(pl.icon);
     const tx = side ? bx + Math.sign(g.n[0]) * gap : bx, ty = side ? by : by + Math.sign(g.n[1] || 1) * (gap + fs * 0.4);
     out += `<g${faintEdge(g.e) || (coarse && pl.lod) ? ' opacity=".18"' : pl.hidden ? ' opacity=".5"' : ''}>` +
       `<path d="${pathD([g.at, [bx - g.n[0] * r, by - g.n[1] * r]])}" stroke="var(--node-stroke)" stroke-width="${1.5 * k}"/>` +
       (on ? `<circle cx="${fmt(bx)}" cy="${fmt(by)}" r="${r + 4 * k}" fill="var(--accent)" fill-opacity=".3"/>` : '') +
-      `<circle class="handle" data-place="${esc(pl.id)}" cx="${fmt(bx)}" cy="${fmt(by)}" r="${r}" fill="var(--node-fill)" stroke="${on ? 'var(--accent)' : 'var(--node-stroke)'}" stroke-width="${1.5 * k}"${pl.hidden ? ` stroke-dasharray="${2.5 * k} ${2 * k}"` : ''}/>` +
-      `<text x="${fmt(bx)}" y="${fmt(by)}" dy="0.35em" text-anchor="middle" font-size="${11 * k}" pointer-events="none">${esc(pl.icon)}</text>` +
+      // The public map's badge (hidden: a dashed outline round it).
+      `<circle class="handle" data-place="${esc(pl.id)}" cx="${fmt(bx)}" cy="${fmt(by)}" r="${r}" fill="${color}" stroke="${on ? 'var(--accent)' : pl.hidden ? 'var(--node-stroke)' : 'var(--canvas)'}" stroke-width="${1.5 * k}"${pl.hidden ? ` stroke-dasharray="${2.5 * k} ${2 * k}"` : ''}/>` +
+      `<g pointer-events="none">${glyphSvg(glyph, bx, by, r * 1.25)}</g>` +
       `<text x="${fmt(tx)}" y="${fmt(ty)}" dy="0.35em" text-anchor="${side ? (g.n[0] > 0 ? 'start' : 'end') : 'middle'}" font-size="${fs}" font-weight="600" fill="var(--text)" stroke="var(--halo)" stroke-width="${2.5 * k}" paint-order="stroke" pointer-events="none">${esc(pl.name)}</text></g>`;
   }
   return out;
@@ -1634,7 +1636,7 @@ function renderPlaces(force) {
   placesKey = key;
   $('placeList').innerHTML = places.map(pl => {
     const e = byKey.get(pl.key);
-    return `<div class="plRow${selPlace === pl.id ? ' on' : ''}" data-pl="${esc(pl.id)}"><span class="ic">${esc(pl.icon)}</span><span class="nm2">${esc(pl.name)}</span>` +
+    return `<div class="plRow${selPlace === pl.id ? ' on' : ''}" data-pl="${esc(pl.id)}"><span class="ic">${badgeHtml(pl.icon, 16)}</span><span class="nm2">${esc(pl.name)}</span>` +
       `<span class="at">${pl.hidden ? 'hidden · ' : ''}${e ? esc(roadText(e.road) || '') : '⚠ not on a drawn road'}</span></div>`;
   }).join('');
 }
@@ -1650,7 +1652,7 @@ function renderPlaceResults() {
     .sort((a, b) => (a.d > 400) - (b.d > 400) || a.o.name.localeCompare(b.o.name));
   el.innerHTML = scored.length ? scored.map(({ o, d }, i) => {
     const [icon, type] = placeKind(o.kind), had = places.some(pl => pl.id === o.osm);
-    return `<div class="plRow" data-osm="${i}"><span class="ic">${icon}</span><span class="nm2">${esc(o.name)}</span>` +
+    return `<div class="plRow" data-osm="${i}"><span class="ic">${badgeHtml(icon, 16)}</span><span class="nm2">${esc(o.name)}</span>` +
       `<span class="at">${had ? 'added' : d > 400 ? `${(d / 1000).toFixed(1)} km off` : esc(type)}</span></div>`;
   }).join('') + (all.length > hits.length ? `<div class="help">${all.length - hits.length} more; type more to narrow it down</div>` : '') : `<div class="help">${osmPlaces.length ? 'Nothing by that name' : 'No OpenStreetMap places loaded (node scripts/fetch-places.mjs)'}</div>`;
   el.querySelectorAll('[data-osm]').forEach(row => row.onclick = () => {
@@ -1921,7 +1923,9 @@ function renderSel() {
       <div class="field">Name</div>
       <input type="text" id="plName" value="${esc(pl.name)}">
       <div class="field">Icon and type</div>
-      <div class="row" style="gap:6px"><input type="text" id="plIcon" value="${esc(pl.icon)}" style="width:44px;text-align:center"><input type="text" id="plType" value="${esc(pl.type)}" placeholder="e.g. Grocery store"></div>
+      <div class="row" style="gap:6px;flex-wrap:nowrap"><button id="plIcon" class="iconBtn" title="${esc(ICONS[iconName(pl.icon)][0])}: click to change" aria-expanded="false">${badgeHtml(pl.icon, 20)}</button><input type="text" id="plType" value="${esc(pl.type)}" placeholder="e.g. Grocery store"></div>
+      <div id="plIcons" class="iconGrid" hidden>${Object.entries(ICONS).map(([name, [label]]) =>
+        `<button data-icon="${name}" title="${esc(label)}"${iconName(pl.icon) === name ? ' class="on"' : ''}>${badgeHtml(name, 22)}</button>`).join('')}</div>
       <label class="row" style="gap:6px" title="Kept in the map's data with its spot, but not drawn on the public map or found by its search"><input type="checkbox" id="plHidden"${pl.hidden ? ' checked' : ''}>Hidden: not shown on the public map</label>
       <label class="row" style="gap:6px" title="Left off the public map when it's zoomed out, like the roads and junctions there"><input type="checkbox" id="plLod"${pl.lod ? ' checked' : ''}>Only when zoomed in</label>
       <label class="row" style="gap:6px" title="Like a corner store: drawn coming out of the junction at the nearer end of its road, between the roads on its side"><input type="checkbox" id="plCorner"${pl.corner ? ' checked' : ''}>At the junction</label>
@@ -1931,7 +1935,14 @@ function renderSel() {
       if (!v || v === pl[f]) return;
       pushHistory(); pl[f] = v; markDirty(); render(); renderPlaces();
     };
-    $('plName').onchange = edit('name'); $('plIcon').onchange = edit('icon'); $('plType').onchange = edit('type');
+    $('plName').onchange = edit('name'); $('plType').onchange = edit('type');
+    // The icon: picked from the public map's (a grid of them, opened by the button).
+    $('plIcon').onclick = () => { const g = $('plIcons'); g.hidden = !g.hidden; $('plIcon').setAttribute('aria-expanded', !g.hidden); };
+    $('plIcons').onclick = (ev) => {
+      const name = ev.target.closest('[data-icon]')?.dataset.icon;
+      if (!name || name === pl.icon) return;
+      pushHistory(); pl.icon = name; markDirty(); render(); renderPlaces(); renderSel();
+    };
     $('plFlip').onclick = () => { pushHistory(); pl.side = -pl.side; markDirty(); render(); placePop(); };
     $('plLod').onchange = (ev) => { pushHistory(); if (ev.target.checked) pl.lod = 1; else delete pl.lod; markDirty(); render(); };
     $('plCorner').onchange = (ev) => {

@@ -13,24 +13,25 @@ export const SKIP = new Set(['amenity=toilets', 'amenity=parking', 'amenity=park
   'amenity=drinking_water', 'amenity=charging_station', 'amenity=vending_machine', 'amenity=atm', 'amenity=telephone',
   'amenity=post_box', 'amenity=fountain', 'amenity=bbq', 'amenity=hunting_stand', 'emergency=fire_hydrant', 'emergency=phone']);
 
-// Icon and label for each kind; others get a pin and their tag value ("Ice cream" for amenity=ice_cream).
+// Icon (a Maki name, see site/place-icons.mjs) and label for each kind; others get the plain marker and their
+// tag value ("Ice cream" for amenity=ice_cream).
 export const PLACE_KINDS = {
-  'shop=supermarket': ['🛒', 'Grocery store'], 'shop=convenience': ['🛒', 'Store'], 'shop=general': ['🛒', 'Store'],
-  'amenity=school': ['🏫', 'School'], 'building=school': ['🏫', 'School'], 'building=kindergarten': ['🏫', 'Preschool'],
-  'building=church': ['⛪', 'Church'], 'building=chapel': ['⛪', 'Chapel'], 'building=fire_station': ['🚒', 'Fire station'], 'amenity=kindergarten': ['🏫', 'Preschool'], 'amenity=fire_station': ['🚒', 'Fire station'],
-  'amenity=restaurant': ['🍽️', 'Restaurant'], 'amenity=cafe': ['☕', 'Café'], 'amenity=fast_food': ['🍔', 'Fast food'],
-  'amenity=bar': ['🍺', 'Bar'], 'amenity=pub': ['🍺', 'Pub'], 'amenity=place_of_worship': ['⛪', 'Church'],
-  'amenity=post_office': ['🏤', 'Post office'], 'amenity=library': ['📚', 'Library'], 'amenity=fuel': ['⛽', 'Gas station'],
-  'amenity=community_centre': ['🏛️', 'Community center'], 'amenity=townhall': ['🏛️', 'Town hall'], 'amenity=pharmacy': ['💊', 'Pharmacy'],
-  'amenity=theatre': ['🎭', 'Theater'], 'amenity=bank': ['🏦', 'Bank'],
-  'amenity=doctors': ['🩺', 'Doctor'], 'amenity=clinic': ['🩺', 'Clinic'], 'amenity=police': ['🚓', 'Police'],
-  'leisure=park': ['🌳', 'Park'], 'leisure=nature_reserve': ['🌲', 'Nature reserve'], 'leisure=playground': ['🛝', 'Playground'],
-  'tourism=camp_site': ['⛺', 'Campground'], 'tourism=viewpoint': ['🔭', 'Viewpoint'], 'tourism=picnic_site': ['🧺', 'Picnic area'],
-  'tourism=information': ['ℹ️', 'Information'], 'tourism=winery': ['🍷', 'Winery'], 'shop=alcohol': ['🍷', 'Wine shop'],
-  'craft=winery': ['🍷', 'Winery'], 'shop=hardware': ['🔧', 'Hardware store'], 'shop=car_repair': ['🔧', 'Auto repair'],
+  'shop=supermarket': ['grocery', 'Grocery store'], 'shop=convenience': ['convenience', 'Store'], 'shop=general': ['convenience', 'Store'],
+  'amenity=school': ['school', 'School'], 'building=school': ['school', 'School'], 'building=kindergarten': ['school', 'Preschool'],
+  'building=church': ['religious-christian', 'Church'], 'building=chapel': ['religious-christian', 'Chapel'], 'building=fire_station': ['fire-station', 'Fire station'], 'amenity=kindergarten': ['school', 'Preschool'], 'amenity=fire_station': ['fire-station', 'Fire station'],
+  'amenity=restaurant': ['restaurant', 'Restaurant'], 'amenity=cafe': ['cafe', 'Café'], 'amenity=fast_food': ['fast-food', 'Fast food'],
+  'amenity=bar': ['beer', 'Bar'], 'amenity=pub': ['beer', 'Pub'], 'amenity=place_of_worship': ['religious-christian', 'Church'],
+  'amenity=post_office': ['post', 'Post office'], 'amenity=library': ['library', 'Library'], 'amenity=fuel': ['fuel', 'Gas station'],
+  'amenity=community_centre': ['town-hall', 'Community center'], 'amenity=townhall': ['town-hall', 'Town hall'], 'amenity=pharmacy': ['pharmacy', 'Pharmacy'],
+  'amenity=theatre': ['theatre', 'Theater'], 'amenity=bank': ['bank', 'Bank'],
+  'amenity=doctors': ['doctor', 'Doctor'], 'amenity=clinic': ['doctor', 'Clinic'], 'amenity=police': ['police', 'Police'],
+  'leisure=park': ['park', 'Park'], 'leisure=nature_reserve': ['park-alt1', 'Nature reserve'], 'leisure=playground': ['playground', 'Playground'],
+  'tourism=camp_site': ['campsite', 'Campground'], 'tourism=viewpoint': ['viewpoint', 'Viewpoint'], 'tourism=picnic_site': ['picnic-site', 'Picnic area'],
+  'tourism=information': ['information', 'Information'], 'tourism=winery': ['alcohol-shop', 'Winery'], 'shop=alcohol': ['alcohol-shop', 'Wine shop'],
+  'craft=winery': ['alcohol-shop', 'Winery'], 'shop=hardware': ['hardware', 'Hardware store'], 'shop=car_repair': ['car-repair', 'Auto repair'],
 };
 export function placeKind(kind = '') {
   if (PLACE_KINDS[kind]) return PLACE_KINDS[kind];
   const v = kind.split('=')[1] || '';
-  return ['📍', !v || v === 'yes' ? 'Place' : v.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase())];
+  return ['marker', !v || v === 'yes' ? 'Place' : v.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase())];
 }

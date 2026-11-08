@@ -4,6 +4,8 @@
 //
 // Coordinates are map units (meters in the layout's plane, y down); k is map units per screen pixel.
 
+import { VILLAGE } from './place-icons.mjs';
+
 // Line widths in pixels for each tier of road (1 highway, 2 main road, 3 secondary road, 4 connector,
 // 5 back road, 6 local road).
 export const TIER_W = [7, 5.5, 4.2, 3, 2.6, 2.6];
@@ -13,7 +15,7 @@ export const tierColor = (t) => `var(--t${t})`;
 // Side roads closer together than BUNCH_PX on screen are bunched into a branch BUNCH_LEN long.
 export const BUNCH_PX = 24, BUNCH_LEN = 20;
 // A place's badge: radius, and its gap from the line's edge, in pixels.
-export const PLACE_R = 9, PLACE_GAP = 6;
+export const PLACE_R = 10.4, PLACE_GAP = 6;
 export const BACK_ROAD = 5;   // the road tiers: 1 highway … 5 back road, 6 local road
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -103,11 +105,12 @@ export function tipText(tip, [dx, dy], gap, lines, fs, tw, placed, attrs, blocke
 }
 
 // ---------- neighborhoods and places ----------
-// A neighborhood: a big circle with three dots for its streets (left off when its name is inside).
+// A neighborhood: a big circle with a village icon in it (dots: false leaves it off, when its name is inside).
 export function areaSvg(x, y, r, k, { stroke = 'var(--node-stroke)', dots = true } = {}) {
-  const d = r * 0.42, dot = (a) => `<circle cx="${fmt(x + d * Math.cos(a))}" cy="${fmt(y + d * Math.sin(a))}" r="${1.7 * k * Math.sqrt(r / (11 * k))}" fill="${stroke}"/>`;
+  // Maki's village spans about 12 of its 15 units: drawn so it's about half the circle across.
+  const s = r * 1.25;
   return `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${r}" fill="var(--node-fill)" stroke="${stroke}" stroke-width="${2.5 * k}"/>` +
-    (dots ? [-Math.PI / 2, Math.PI / 6, 5 * Math.PI / 6].map(dot).join('') : '');
+    (dots ? `<g transform="translate(${fmt(x - s / 2)} ${fmt(y - s / 2)}) scale(${(s / 15).toFixed(3)})" fill="${stroke}">${VILLAGE}</g>` : '');
 }
 // Where a place on a line is: the point at t (pointAt(t) gives the line's drawn points), and the unit
 // normal toward the side it's on (side: +1 or -1, the sign of the cross product with y down).

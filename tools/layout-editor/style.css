@@ -79,7 +79,13 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 #placeQ { font: inherit; font-size: 13px; padding: 4px 6px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 5px; box-sizing: border-box; }
 .plRow { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 6px; margin: 0 -6px; border-radius: 5px; cursor: pointer; }
 .plRow:hover, .plRow.on { background: color-mix(in srgb, var(--accent) 14%, transparent); }
-.plRow .ic { width: 18px; text-align: center; }
+.plRow .ic { width: 18px; display: grid; place-items: center; }
+.poiBadge { display: block; }
+/* A place's icon: the button shows it, the grid under it offers the rest. */
+.iconBtn { padding: 3px 5px; flex: none; }
+.iconGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)); gap: 3px; margin: 6px 0 2px; }
+.iconGrid button { padding: 3px; display: grid; place-items: center; border-color: transparent; background: none; }
+.iconGrid button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
 .plRow .nm2 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .plRow .at { color: var(--muted); font-size: 11px; white-space: nowrap; }
 #btnPlaceHand.on { background: var(--accent); color: #fff; border-color: var(--accent); }

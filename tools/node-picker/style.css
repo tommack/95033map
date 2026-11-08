@@ -93,9 +93,11 @@ button.small { font-size: 12px; padding: 2px 8px; }
 .hint { position: absolute; z-index: 1000; top: 12px; left: 50%; transform: translateX(-50%);
   background: rgba(17,17,17,.84); color: #fff; padding: 6px 12px; border-radius: 16px; font-size: 13px;
   pointer-events: none; white-space: nowrap; }
-.plMark { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; line-height: 1;
-  background: #fff; border: 1px solid #999; box-shadow: 0 1px 2px rgba(0,0,0,.3); cursor: pointer; }
-.plMark.on { border: 2px solid #0b6bcb; box-shadow: 0 0 0 2px rgba(11,107,203,.3); }
+/* The public map's badge (see site/place-icons.mjs), with a white edge to stand off the tiles. */
+.plMark { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  box-shadow: 0 0 0 1.5px #fff, 0 1px 3px rgba(0,0,0,.4); cursor: pointer; }
+.plMark .poiBadge { display: block; }
+.plMark.on { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #0b6bcb; }
 .plMark:not(.on) { opacity: .8; }
 .popup .plHead { font-weight: 600; font-size: 14px; }
 .popup .warn { color: #b26a00; font-size: 12px; margin-top: 4px; }

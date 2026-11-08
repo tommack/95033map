@@ -17,7 +17,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #121211; --card: #1f1f1d; --text: #e9ecf1; --muted: #9c9b94; --line: #34332f; --accent: #5aa4f0;
-    --halo: #121211; --node-fill: #121211; --node-stroke: #ecebe6; --poi-fill: #3a3935; --me: #4c9bff;
+    --halo: #121211; --node-fill: #121211; --node-stroke: #ecebe6; --me: #4c9bff;
     --logo-pin: #e9ecf1; --logo-line: #0c2463;
     --t1: #dce7ff; --t2: #679bf5; --t3: #4b6ba9; --t4: #465d86; --t5: #565d68; --t6: #4a5059;
     --shadow: 0 2px 12px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .06);
@@ -25,7 +25,7 @@
 }
 :root[data-theme="dark"] {
   --bg: #121211; --card: #1f1f1d; --text: #e9ecf1; --muted: #9c9b94; --line: #34332f; --accent: #5aa4f0;
-  --halo: #121211; --node-fill: #121211; --node-stroke: #ecebe6; --poi-fill: #3a3935; --me: #4c9bff;
+  --halo: #121211; --node-fill: #121211; --node-stroke: #ecebe6; --me: #4c9bff;
   --logo-pin: #e9ecf1; --logo-line: #0c2463;
   --t1: #dce7ff; --t2: #679bf5; --t3: #4b6ba9; --t4: #465d86; --t5: #565d68; --t6: #4a5059;
   --shadow: 0 2px 12px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .06);
@@ -149,6 +149,7 @@ body.has-card #controls { transform: translateY(calc(-1 * var(--card-h, 0px))); 
 #cardBody .mark { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)) minmax(52px, 1.5fr); gap: 4px; margin-top: 4px; }
 #cardBody .markLabel { font-size: 12px; color: var(--muted); margin-top: 10px; }
 #cardBody h2 .pinEmo { font-size: 22px; line-height: 1; }
+.poiBadge { flex: none; display: block; }
 #cardBody .removePin { margin-top: 8px; border: 0; background: none; color: #d93025; font: inherit; font-size: 13px; font-weight: 500; padding: 4px 0; cursor: pointer; }
 #cardBody .mark button { height: 34px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); font-size: 18px;
   line-height: 1; padding: 0; cursor: pointer; }

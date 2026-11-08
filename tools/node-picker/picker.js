@@ -1,4 +1,5 @@
 import { placeKind } from '../place-kinds.mjs';
+import { badgeHtml } from '../../site/place-icons.mjs';
 
 const STATE_VERSION = 3;
 const DERIVED_VERSION = 5;                      // 4: edges carry route refs; 5: open ends say if the road continues
@@ -1055,7 +1056,7 @@ const placeMarks = new Map();   // osm id -> marker
 let ed = null, showPlaces = true;
 function placeIcon(o) {
   const on = ed.places.some(pl => pl.id === o.osm);
-  return L.divIcon({ className: '', iconSize: [22, 22], html: `<div class="plMark${on ? ' on' : ''}">${esc(placeKind(o.kind)[0])}</div>` });
+  return L.divIcon({ className: '', iconSize: [22, 22], html: `<div class="plMark${on ? ' on' : ''}">${badgeHtml(placeKind(o.kind)[0], 22)}</div>` });
 }
 let placesOn = new Set();
 function refreshPlaces() {

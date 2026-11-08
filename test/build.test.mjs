@@ -3,7 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { buildAll } from '../site/build-map.mjs';
-import { placeKind } from '../tools/place-kinds.mjs';
+import { placeKind, PLACE_KINDS } from '../tools/place-kinds.mjs';
+import { ICONS, iconName } from '../site/place-icons.mjs';
 
 const read = (f) => JSON.parse(readFileSync(new URL(`../data/${f}`, import.meta.url), 'utf8'));
 const graph = read('graph-derived.json'), layout = read('layout-derived.json'), slugs = read('slugs.json');
@@ -79,8 +80,18 @@ test('warns when a neighborhood map is out of date', () => {
   assert.ok(buildAll(graph, layout, old, slugs).warnings.some((w) => /graph changed/.test(w)));
 });
 
-test('place kinds: known ones have icons, others a pin and a readable label', () => {
-  assert.deepEqual(placeKind('shop=supermarket'), ['🛒', 'Grocery store']);
-  assert.deepEqual(placeKind('amenity=ice_cream'), ['📍', 'Ice cream']);
-  assert.deepEqual(placeKind('tourism=yes'), ['📍', 'Place']);
+test('place kinds: known ones have icons, others the plain marker and a readable label', () => {
+  assert.deepEqual(placeKind('shop=supermarket'), ['grocery', 'Grocery store']);
+  assert.deepEqual(placeKind('amenity=ice_cream'), ['marker', 'Ice cream']);
+  assert.deepEqual(placeKind('tourism=yes'), ['marker', 'Place']);
+  // Every icon a kind gets is one the map can draw.
+  for (const [icon] of Object.values(PLACE_KINDS)) assert.ok(ICONS[icon], icon);
+});
+
+test('place icons: Maki names, and the emoji places were saved with before', () => {
+  assert.equal(iconName('fire-station'), 'fire-station');
+  assert.equal(iconName('⛺️'), 'campsite');
+  assert.equal(iconName('⛺'), 'campsite');
+  assert.equal(iconName('🦄'), 'marker');
+  assert.equal(iconName(), 'marker');
 });

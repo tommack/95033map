@@ -20,6 +20,7 @@ import {
   chevrons as chevronSize, chevronSvg, tipText, areaSvg, placeFit, placeSpot, cornerSpot, cornerBadge, awayFrom, bunchSideRoads, bunchBranch,
   TIER_W, BUNCH_PX, PLACE_R, BACK_ROAD, tierColor,
 } from './shared.mjs';
+import { placeIcon, glyphSvg, badgeHtml } from './place-icons.mjs';
 
 const LIVE = new URLSearchParams(location.search).has('live');
 const MI = 1609.34;
@@ -460,8 +461,6 @@ const bunchSvg = (b, k) => bunchBranch([b.j.x, b.j.y], b.dir, k).svg;
 // Places (shops, schools…): a badge with an icon beside the road, on the side the place is, joined to
 // it by a tick, with the name past it. Kept when their road is left off (see placeTied).
 const PLACE_NAME_K = 8;   // meters per pixel: zoomed in past this, places get their names; zoomed out, just the icon
-// In light mode just the icon; in dark mode a gray circle behind it, which the icons need there.
-const DARK = matchMedia('(prefers-color-scheme: dark)');
 // Each badge where it was put, or slid along its line off the lines, junctions and other badges it would
 // cover (see placeFit). Worked out for all the places at once, again when the zoom or what's drawn changes.
 let placeFits = null;
@@ -506,12 +505,11 @@ const placeTied = (q) => !coarse && shown(q.e);
 const placeShown = (q) => !(coarse && q.lod);
 const placesShown = () => M.places.filter(placeShown);
 function placeSvg(q, k) {
-  const { at, n, r, c: [x, y] } = placeGeom(q, k), bare = !DARK.matches, end = bare ? r * 0.75 : r;
-  return (placeTied(q) ? `<path d="M${fmt(at[0])} ${fmt(at[1])}L${fmt(x - n[0] * end)} ${fmt(y - n[1] * end)}" stroke="var(--muted)" stroke-width="${1.5 * k}"/>` : '') +
-    (bare ? '' : `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${r}" fill="var(--poi-fill)"/>`) +
-    `<text x="${fmt(x)}" y="${fmt(y)}" dy="0.35em" text-anchor="middle" font-size="${(bare ? 14 : 11) * k}">${esc(q.icon)}</text>`;
+  const { at, n, r, c: [x, y] } = placeGeom(q, k), [glyph, color] = placeIcon(q.icon);
+  return (placeTied(q) ? `<path d="M${fmt(at[0])} ${fmt(at[1])}L${fmt(x - n[0] * r)} ${fmt(y - n[1] * r)}" stroke="var(--muted)" stroke-width="${1.5 * k}"/>` : '') +
+    `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${fmt(r)}" fill="${color}" stroke="var(--bg)" stroke-width="${1.5 * k}"/>` +
+    glyphSvg(glyph, x, y, r * 1.25);
 }
-DARK.addEventListener('change', () => { if (M) { drawn.k = null; draw(); } });
 
 const PRIVATE = '#d93025';
 function drawLines() {
@@ -1209,7 +1207,7 @@ function pinCard(q) {
 function poiCard(q) {
   const road = roadText(q.e.road) || 'an unnamed road';
   return `<div class="kicker">${esc(q.type || 'Place')}</div>
-    <h2><span class="pinEmo">${esc(q.icon)}</span>${esc(q.name)}</h2>
+    <h2>${badgeHtml(q.icon, 24)}${esc(q.name)}</h2>
     <div class="meta">On ${esc(road)}</div>
     ${actionsHtml([q.lat, q.lon], q.name)}`;
 }
@@ -1694,7 +1692,7 @@ let hoverEv = null, hoverRaf = 0;
 function tipFor(h) {
   if (h.type === 'pin') return h.pin.report ? [`${h.pin.emoji} ${h.pin.title}`, reportWhen(h.pin)] : [`${h.pin.emoji} ${emojiName(h.pin.emoji) || 'Marked spot'}`];
   if (h.type === 'me') return ['Your location'];
-  if (h.type === 'poi') return [`${h.q.icon} ${h.q.name}`, h.q.type];
+  if (h.type === 'poi') return [h.q.name, h.q.type];
   if (h.type === 'bunch') {
     const names = [...new Set(h.b.names || [])];
     return [`${Math.max(names.length, h.b.leaves.length)} side roads`, names.length ? names.slice(0, 3).join(', ') + (names.length > 3 ? '…' : '') : 'Click to zoom in'];
@@ -1863,7 +1861,7 @@ function buildSearchIndex() {
     add(n.label, { id: `n:${n.id}`, type: 'node', node: n, sub: `Neighborhood · ${(n.roads || []).length} roads`, rank: 0 });
     for (const r of n.roads || []) if (!byRoad.has(r)) add(r, { id: `n:${n.id}`, type: 'node', node: n, road: r, sub: `In ${n.label}`, rank: 1 });
   }
-  for (const q of M.places) add(q.name, { id: `f:${q.slug}`, type: 'poi', q, sub: `${q.type || 'Place'} · on ${roadText(q.e.road) || 'an unnamed road'}`, icon: q.icon, rank: 0 });
+  for (const q of M.places) add(q.name, { id: `f:${q.slug}`, type: 'poi', q, sub: `${q.type || 'Place'} · on ${roadText(q.e.road) || 'an unnamed road'}`, poi: q.icon, rank: 0 });
   for (const n of M.nodes) for (const name of n.places || []) add(name, { id: `n:${n.id}`, type: 'node', node: n, place: name, sub: `In ${n.label}`, icon: '📍', rank: 1 });
   for (const h of M.hidden) {
     const tip = h.tips.find((n) => n.edges.length);
@@ -1895,7 +1893,7 @@ function showResults() {
   resultOn = results.length ? 0 : -1;
   if (!q.trim()) { ul.hidden = true; return; }
   ul.innerHTML = results.length ? results.map((it, i) => `<li role="option" data-i="${i}"${i === resultOn ? ' class="on"' : ''}>
-      ${it.icon ? `<span class="chip ico">${esc(it.icon)}</span>` : it.color ? `<span class="chip" style="background:${it.color}"></span>` : '<span class="chip" style="background:var(--node-stroke)"></span>'}
+      ${it.poi ? badgeHtml(it.poi, 16) : it.icon ? `<span class="chip ico">${esc(it.icon)}</span>` : it.color ? `<span class="chip" style="background:${it.color}"></span>` : '<span class="chip" style="background:var(--node-stroke)"></span>'}
       <span><div class="nm">${esc(it.name)}</div><div class="sub">${esc(it.sub)}</div></span></li>`).join('')
     : '<li class="empty">Nothing by that name on this map</li>';
   ul.hidden = false;
