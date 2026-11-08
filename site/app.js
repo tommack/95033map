@@ -20,7 +20,7 @@ import {
   chevrons as chevronSize, chevronSvg, tipText, areaSvg, placeFit, placeSpot, cornerSpot, cornerBadge, awayFrom, bunchSideRoads, bunchBranch,
   TIER_W, BUNCH_PX, PLACE_R, BACK_ROAD, tierColor,
 } from './shared.mjs';
-import { placeIcon, glyphSvg, badgeHtml } from './place-icons.mjs';
+import { placeIcon, glyphSvg, badgeHtml, VILLAGE } from './place-icons.mjs';
 
 const LIVE = new URLSearchParams(location.search).has('live');
 const MI = 1609.34;
@@ -617,22 +617,55 @@ function tipDir(n) {
 // A road that keeps going after the map stops ends in two chevrons.
 const chevrons = (e, k) => chevronSize(lineWidth(e), k);
 
-// A neighborhood: a big circle with a few dots for its streets. Its radius is Size × 70 m on the
+// A neighborhood: a big circle with a village icon in it. Its radius is Size × 70 m on the
 // map (Size is set in the layout editor), so it zooms with the roads, but it's never smaller than a
 // big junction circle.
 const areaR = (n, k) => Math.max(11 * k, 70 * (n.size || 1));
-const AREA_FS = 10.5;
-const areaTextW = (t) => textWidth(t, AREA_FS, 600) + t.length * AREA_FS * 0.08;
-// The name in lines that fit inside the circle (null if it doesn't fit).
+// Its name's size in pixels: AREA_FS beside the circle or in a small one, growing with the circle (its
+// radius / 6.5) up to AREA_FS_MAX. Spaced out by 8% of the size.
+const AREA_FS = 10.5, AREA_FS_MAX = 22;
+// (Measured at AREA_FS and scaled: the size inside a circle changes with every frame of a zoom.)
+const areaTextW = (t, fs = AREA_FS) => (textWidth(t, AREA_FS, 600) + t.length * AREA_FS * 0.08) * fs / AREA_FS;
+// The name inside the circle, with the village icon on a line of its own above it (2.2 times the text's
+// size): { lines, fs, icon } (sizes in pixels), or null if they don't both fit with the name at AREA_FS
+// (then the circle has just the icon, bigger, and the name goes beside it). The size is worked out (not tried in steps), so it changes smoothly with the
+// circle's: on one line if that's at least 3/4 of the size it would have, otherwise split where it can
+// be biggest.
 function areaInside(n, k) {
   if (!n.label) return null;
-  const r = areaR(n, k) / k, maxW = r * 1.55, lines = [];
-  for (const w of n.label.toUpperCase().split(/\s+/)) {
-    const cur = lines.length ? `${lines[lines.length - 1]} ${w}` : null;
-    if (cur && areaTextW(cur) <= maxW) lines[lines.length - 1] = cur; else lines.push(w);
+  const r = areaR(n, k) / k, maxW = r * 1.55, maxH = r * 1.3, top = clamp(r / 6.5, AREA_FS, AREA_FS_MAX);
+  const words = n.label.toUpperCase().split(/\s+/);
+  // Every way to split the words into up to 3 lines (one line first).
+  const splits = [];
+  for (let m = 0; m < 1 << (words.length - 1); m++) {
+    const lines = [words[0]];
+    words.slice(1).forEach((w, i) => { if (m & (1 << i)) lines.push(w); else lines[lines.length - 1] += ` ${w}`; });
+    if (lines.length <= 3) splits.push(lines);
   }
-  if (lines.some((t) => areaTextW(t) > maxW) || lines.length * AREA_FS * 1.2 > r * 1.3) return null;
-  return lines;
+  splits.sort((a, b) => a.length - b.length);
+  // The biggest size the lines fit at (width and height both grow in step with it).
+  const at = (lines) => {
+    const fs = Math.min(top, maxW / Math.max(...lines.map((t) => areaTextW(t, 1))), maxH / (lines.length * 1.2 + 2.6));
+    return { lines, fs, icon: fs * 2.2 };
+  };
+  const one = at(splits[0]);
+  if (one.fs >= Math.max(AREA_FS, top * 0.75)) return one;
+  const best = splits.map(at).reduce((a, b) => (b.fs > a.fs + 1e-6 ? b : a));
+  return best.fs >= AREA_FS ? best : null;
+}
+
+// Named only once its circle is drawn at its real size, so bigger neighborhoods get named first as you
+// zoom in, and none while they're all shrunk to the smallest marker.
+const areaNamed = (n, k) => n.label && 70 * (n.size || 1) >= 11 * k;
+// The name inside the circle, with the icon (in the circle's outline color) over it, all centered on the
+// circle. Drawn with the circle, every frame, so it grows with it as you zoom (not with the labels, which
+// are held at their size between passes); at exact sizes, which Chrome would otherwise snap to whole pixels.
+function areaNameSvg(n, k, inside) {
+  const fs = inside.fs * k, lh = fs * 1.2, icon = inside.icon * k, gap = fs * 0.4;
+  const top = n.y - (icon + gap + inside.lines.length * lh) / 2, y0 = top + icon + gap + lh / 2;
+  return `<g transform="translate(${fmt(n.x - icon / 2)} ${fmt(top)}) scale(${(icon / 15).toFixed(4)})" fill="var(--node-stroke)">${VILLAGE}</g>` +
+    `<text text-anchor="middle" font-size="${fs}" font-weight="600" letter-spacing="${fmt(fs * 0.08)}" fill="var(--muted)" text-rendering="geometricPrecision" pointer-events="none">` +
+    inside.lines.map((t, i) => `<tspan x="${fmt(n.x)}" y="${fmt(y0 + i * lh)}" dy="0.35em">${esc(t)}</tspan>`).join('') + '</text>';
 }
 
 function drawNodes(k) {
@@ -643,7 +676,8 @@ function drawNodes(k) {
     if (n.kind) {
       const e = n.edges[0], [ux, uy] = tipDir(n), w = lineWidth(e) * k, col = e.style.color;
       if (n.kind === 'area') {
-        s += areaSvg(x, y, areaR(n, k), k, { dots: !areaInside(n, k) });
+        const inside = areaNamed(n, k) && areaInside(n, k);
+        s += areaSvg(x, y, areaR(n, k), k, { dots: !inside }) + (inside ? areaNameSvg(n, k, inside) : '');
         continue;
       }
       if (n.kind === 'closed' && n.gap) {
@@ -821,16 +855,10 @@ function drawLabels(k, settled = true) {
   // Neighborhood names, in small spaced capitals like area names on a map: inside the circle when
   // it's big enough, otherwise on the free side furthest from its roads, and left off if there's no room.
   for (const n of M.nodes) {
-    // Named only once its circle is drawn at its real size, so bigger neighborhoods get named first as
-    // you zoom in, and none while they're all shrunk to the smallest marker.
-    if (n.kind !== 'area' || !n.label || !shown(n) || 70 * (n.size || 1) < 11 * k) continue;
-    const r = areaR(n, k), inside = areaInside(n, k), fs = AREA_FS * k, lh = fs * 1.2;
-    const style = `font-size="${fs}" font-weight="600" letter-spacing="${(AREA_FS * 0.08).toFixed(2)}" fill="var(--muted)" ${halo(3)}`;
-    if (inside) {
-      const y0 = n.y - ((inside.length - 1) * lh) / 2;
-      out += inside.map((t, i) => `<text x="${fmt(n.x)}" y="${fmt(y0 + i * lh)}" ${origin(n.x, n.y)} dy="0.35em" text-anchor="middle" ${style}>${esc(t)}</text>`).join('');
-      continue;
-    }
+    // Inside its circle, it's drawn with the circle (areaNameSvg).
+    if (n.kind !== 'area' || !shown(n) || !areaNamed(n, k) || areaInside(n, k)) continue;
+    const r = areaR(n, k);
+    const fs = AREA_FS * k, style = `font-size="${fs}" font-weight="600" letter-spacing="${fmt(fs * 0.08)}" fill="var(--muted)" ${halo(3)}`;
     const text = n.label.toUpperCase(), tw = areaTextW(text) * k;
     const angs = n.edges.map((e) => { const p = anchorPts(e), q = e.A === n ? p[1] : p[p.length - 2]; return Math.atan2(q[1] - n.y, q[0] - n.x); });
     const away = (a) => Math.min(Math.PI, ...angs.map((b) => Math.abs(((a - b) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI)));
