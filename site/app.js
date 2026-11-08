@@ -1259,6 +1259,27 @@ async function loadReports() {
   reportsShown = true;
   showCard(); drawMarks();
 }
+// The main map shows a link to /recent while something there is live (not cleared, not expired).
+async function checkRecent() {
+  let live = 0;
+  try {
+    const f = await fetchJSON(FEED);
+    const shift = FEED === 'recent-sample.json' ? Date.now() - Date.parse(f.generated) : 0;
+    live = (f?.version === 1 && Array.isArray(f.items) ? f.items : [])
+      .filter((it) => it.status !== 'cleared' && Date.parse(it.expires) + shift > Date.now()).length;
+  } catch (e) { console.warn('recent reports', e); }
+  $('recentN').textContent = live || '';
+  $('recentLink').setAttribute('aria-label', `${live} recent report${live > 1 ? 's' : ''}`);
+  $('recentLink').hidden = !live;
+  document.body.classList.toggle('has-recent', !!live);
+  if (live) document.body.style.setProperty('--recent-w', `${$('recentLink').offsetWidth}px`);
+}
+function startRecentLink() {
+  if (location.search) $('recentLink').search = location.search;   // keeps ?feed=sample while testing
+  checkRecent();
+  setInterval(() => document.visibilityState === 'visible' && checkRecent(), REPORT_EVERY);
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && checkRecent());
+}
 function startReports() {
   loadReports();
   setInterval(() => document.visibilityState === 'visible' && loadReports(), REPORT_EVERY);
@@ -2151,7 +2172,7 @@ if (LIVE && 'BroadcastChannel' in window) {
   // A link to a neighborhood's map: the main map behind it, whole.
   if (new URLSearchParams(location.hash.slice(1)).has('a')) fitTo(M.bounds);
   if (!openHash()) fitTo(M.bounds);
-  if (RECENT) startReports();
+  if (RECENT) startReports(); else startRecentLink();
   window.subwayFocus = focusApi;   // the tools shell waits for this
   window.subwayMap = { get M() { return M; }, locate, select, get view() { return view; }, get hidden() { return { stubs: new Set([...stubEdges()].filter((e) => !stubShow.has(e))), bunched: bunchHide }; } };
 })();

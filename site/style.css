@@ -49,6 +49,23 @@ svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, s
 #title .logo .l { fill: none; stroke: var(--logo-line); stroke-width: 4.4; stroke-linecap: round; stroke-linejoin: round; }
 #title .logo .s { fill: #e5484d; stroke-width: 2.8; }
 #title p { margin: 0; font-size: 12px; color: var(--muted); }
+/* The way to /recent, only while something is reported there. */
+/* Phones: beside the search, which gives it room (--recent-w is its width, set in checkRecent) and takes
+   the whole row back while it's being typed in. Desktop: under the title. */
+#recentLink { position: fixed; top: calc(58px + env(safe-area-inset-top)); right: 16px; height: 39px; box-sizing: border-box; z-index: 4;
+  display: inline-flex; align-items: center; gap: 6px; padding: 0 12px 0 10px; border-radius: 999px; transition: opacity .15s;
+  background: var(--card); box-shadow: var(--shadow); color: var(--text); text-decoration: none; white-space: nowrap;
+  font: 600 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+#recentLink[hidden] { display: none; }
+@media (max-width: 899px) {
+  #search { transition: width .2s; }
+  body.has-recent #search { width: min(360px, calc(100vw - 40px - var(--recent-w, 110px))); }
+  body.has-recent #search:focus-within, body.has-recent #search:has(input:not(:placeholder-shown)) { width: calc(100vw - 32px); }
+  #search:focus-within ~ #recentLink, #search:has(input:not(:placeholder-shown)) ~ #recentLink { opacity: 0; pointer-events: none; }
+}
+#recentLink .dot { width: 8px; height: 8px; border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 3px color-mix(in srgb, #e5484d 22%, transparent); }
+#recentN { color: var(--muted); font-weight: 500; }
+#recentN::before { content: "·"; margin: 0 4px 0 -2px; }
 
 /* Real | Subway: the highlight slides to the one that's on while the map morphs. */
 #morphCtl { position: fixed; top: calc(14px + env(safe-area-inset-top)); right: 16px; display: grid; grid-template-columns: 1fr 1fr;
@@ -83,6 +100,7 @@ svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, s
 #results .empty:hover { background: none; }
 /* On a wide screen, search sits at the top in the middle, between the title and the controls. */
 @media (min-width: 900px) {
+  #recentLink { top: calc(58px + env(safe-area-inset-top)); right: auto; left: 16px; height: 30px; }   /* the search is centered */
   #search { top: calc(14px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(420px, calc(100vw - 560px)); }
 }
 #controls { position: fixed; right: 16px; bottom: calc(28px + env(safe-area-inset-bottom)); display: flex; flex-direction: column;
@@ -195,7 +213,7 @@ body.has-card #attrib { display: none; }
    the whole screen, with its name and the way back where the title was. */
 #backdrop { position: fixed; inset: 0; width: 100%; height: 100%; display: none; cursor: pointer; }
 #subBar, #subClose { display: none; }
-body.sub #title { display: none; }
+body.sub #title, body.sub #recentLink { display: none; }
 body.sub #subBar { display: flex; align-items: center; gap: 8px; position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 16px;
   max-width: calc(100vw - 32px); background: color-mix(in srgb, var(--bg) 82%, transparent); padding: 4px 10px 4px 4px; border-radius: 10px; z-index: 4; }
 #subBar h1 { margin: 0; font-size: 18px; line-height: 1.15; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
