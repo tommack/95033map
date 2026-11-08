@@ -1,6 +1,6 @@
 {
- "rev": 2088,
- "savedAt": "2026-11-07T16:30:09.933Z",
+ "rev": 2098,
+ "savedAt": "2026-11-08T21:38:47.200Z",
  "state": {
   "version": 1,
   "settings": {
@@ -70,7 +70,7 @@
     "tier": "connector"
    },
    "Madrone Drive": {
-    "tier": "secondary"
+    "tier": "connector"
    },
    "Broadway Road": {
     "tier": "secondary"
@@ -1007,7 +1007,7 @@
    },
    {
     "id": "way/41382025",
-    "name": "Cal Fire (California Department of Forestry and Fire Protection) CZU Felton Headquarters",
+    "name": "Cal Fire CZU Felton Headquarters",
     "icon": "🚒",
     "type": "Fire station",
     "osm": "way/41382025",
@@ -1261,7 +1261,7 @@
     "key": "1384102749/5853302525|52155858/5063077018",
     "t": 0.31669,
     "side": -1,
-    "hidden": true
+    "lod": 1
    },
    {
     "id": "node/358776797",
@@ -1357,7 +1357,7 @@
    {
     "id": "node/2416570749",
     "name": "Black Ridge Vineyards",
-    "icon": "🍺",
+    "icon": "alcohol-shop",
     "type": "Bar",
     "osm": "node/2416570749",
     "lat": 37.191468,
@@ -1390,8 +1390,7 @@
     "lon": -121.933423,
     "key": "91067387/5365963616|963773397/7360479280",
     "t": 0.94446,
-    "side": 1,
-    "hidden": true
+    "side": 1
    },
    {
     "id": "node/5748024918",
@@ -1448,7 +1447,7 @@
    {
     "id": "node/2412645696",
     "name": "Villa Del Monte Winery",
-    "icon": "🍺",
+    "icon": "alcohol-shop",
     "type": "Bar",
     "osm": "node/2412645696",
     "lat": 37.13105,
@@ -1612,7 +1611,7 @@
     "key": "91028049/413770515|91048839/11154654825",
     "t": 0.16164,
     "side": 1,
-    "hidden": true
+    "lod": 1
    },
    {
     "id": "way/174386948",
@@ -1664,7 +1663,7 @@
     "key": "91046356/13591388042|91046381/13591388053",
     "t": 0.93704,
     "side": 1,
-    "hidden": true
+    "lod": 1
    },
    {
     "id": "node/1213988184",
